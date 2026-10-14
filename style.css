@@ -375,3 +375,22 @@ footer p {
     .hill.h1 { width: 300px; }
     .hill.h2 { width: 360px; }
 }
+
+/* ---------- hero buttons: PRESS START + RAIN side by side ---------- */
+.hero-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;            /* stacks on narrow phones */
+    margin-top: 8px;
+}
+.hero .hero-buttons .start { display: inline-block; margin: 0; }
+.rain-btn { background: var(--blue); }
+
+/* ---------- whole project card as a link ---------- */
+.card-link {
+    display: block;             /* <a> is inline by default */
+    color: inherit;             /* no link-blue text */
+    text-decoration: none;      /* no underline */
+}
+.card-link h3::after { content: " ↗"; }

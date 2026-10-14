@@ -7,46 +7,61 @@
     <meta name="description" content="Koko — physics, code, and small useful bots. Phnom Penh.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <nav>
-        <a href="#top" class="logo">koko<span>gecko</span></a>
-        <div class="links">
+        <a href="#top" class="logo">KOKOGECKO</a>
+        <div class="nav-right">
             <a href="#about">about</a>
             <a href="#projects">projects</a>
             <a href="#contact">contact</a>
+            <span class="score" title="Click the coins!"><i class="mini-coin"></i> x<b id="coin-count">00</b></span>
         </div>
     </nav>
 
-    <header id="top">
-        <p class="prompt">$ whoami</p>
-        <h1>Koko</h1>
-        <p class="tagline">Physics-bound. Self-taught coder. Building small, useful things from Phnom Penh.</p>
+    <header class="hero" id="top">
+        <!-- sky decoration -->
+        <div class="cloud c1"></div>
+        <div class="cloud c2"></div>
+        <div class="cloud c3"></div>
+
+        <!-- collectable coins: click them! -->
+        <button class="coin-wrap" style="left: 12%; top: 38%; --d: 0s" aria-label="coin"><span class="coin"></span></button>
+        <button class="coin-wrap" style="left: 82%; top: 30%; --d: .4s" aria-label="coin"><span class="coin"></span></button>
+        <button class="coin-wrap" style="left: 68%; top: 56%; --d: .8s" aria-label="coin"><span class="coin"></span></button>
+        <button class="coin-wrap" style="left: 28%; top: 62%; --d: 1.2s" aria-label="coin"><span class="coin"></span></button>
+        <button class="coin-wrap" style="left: 92%; top: 62%; --d: .2s" aria-label="coin"><span class="coin"></span></button>
+
+        <div class="hero-text">
+            <p class="prompt">WORLD 1-1</p>
+            <h1>KOKO</h1>
+            <p class="tagline">Physics-bound. Self-taught coder. Building small, useful things from Phnom Penh.</p>
+            <a class="start" href="#projects">PRESS START ▶</a>
+        </div>
+
+        <!-- scenery -->
+        <div class="hill h1"></div>
+        <div class="hill h2"></div>
+        <div class="walker"><div class="gecko" id="gecko" title="Click me!"></div></div>
+        <div class="ground"></div>
     </header>
 
     <main>
         <section id="about">
-            <h2><span class="num">01</span> About</h2>
-            <p>
-                I'm Koko, a student in Phnom Penh heading toward a physics degree,
-                with my eyes on quantum physics and quantum key distribution.
-                Werner Heisenberg is the reason I started down this road.
-            </p>
-            <p>
-                I taught myself Python and C, and I like building tools that solve
-                real problems for real people — usually as Telegram bots.
-                I'm also learning German, and I play chess and poker for the maths.
-            </p>
+            <h2><span class="badge">1</span> About</h2>
+            <div class="panel">
+                <p>I like geckos.</p>
+            </div>
         </section>
 
         <section id="projects">
-            <h2><span class="num">02</span> Projects</h2>
+            <h2><span class="badge">2</span> Projects</h2>
 
             <div class="cards">
-                <article class="card">
+                <article class="card red">
                     <h3>monsoon_bot</h3>
                     <p>
                         A rain-prediction Telegram bot that sends forecasts in Khmer,
@@ -57,7 +72,7 @@
                     </ul>
                 </article>
 
-                <article class="card">
+                <article class="card blue">
                     <h3>GeckoChecker</h3>
                     <p>
                         A Telegram bot that reads the timestamps on staff check-in photos
@@ -69,7 +84,7 @@
                     </ul>
                 </article>
 
-                <article class="card">
+                <article class="card yellow">
                     <h3>Cooking Wars</h3>
                     <p>
                         An open-world Roblox game I'm building with two friends:
@@ -80,7 +95,7 @@
                     </ul>
                 </article>
 
-                <article class="card soon">
+                <article class="card green soon">
                     <h3>rain.kokogecko.dev</h3>
                     <p>A web dashboard for monsoon_bot. Coming soon.</p>
                     <ul class="tags">
@@ -91,9 +106,11 @@
         </section>
 
         <section id="contact">
-            <h2><span class="num">03</span> Contact</h2>
-            <p>Find my code on GitHub.</p>
-            <a class="button" href="https://github.com/KokoGecko" target="_blank" rel="noopener">github.com/KokoGecko →</a>
+            <h2><span class="badge">3</span> Contact</h2>
+            <div class="panel">
+                <p>Find my code on GitHub.</p>
+                <a class="start" href="https://github.com/KokoGecko" target="_blank" rel="noopener">GITHUB ▶</a>
+            </div>
         </section>
     </main>
 
@@ -101,5 +118,6 @@
         <p>© 2026 KokoGecko · built by hand, no frameworks</p>
     </footer>
 
+    <script src="script.js"></script>
 </body>
 </html>

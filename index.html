@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KokoGecko</title>
+    <meta name="description" content="Koko — physics, code, and small useful bots. Phnom Penh.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav>
+        <a href="#top" class="logo">koko<span>gecko</span></a>
+        <div class="links">
+            <a href="#about">about</a>
+            <a href="#projects">projects</a>
+            <a href="#contact">contact</a>
+        </div>
+    </nav>
+
+    <header id="top">
+        <p class="prompt">$ whoami</p>
+        <h1>Koko</h1>
+        <p class="tagline">Physics-bound. Self-taught coder. Building small, useful things from Phnom Penh.</p>
+    </header>
+
+    <main>
+        <section id="about">
+            <h2><span class="num">01</span> About</h2>
+            <p>
+                I'm Koko, a student in Phnom Penh heading toward a physics degree,
+                with my eyes on quantum physics and quantum key distribution.
+                Werner Heisenberg is the reason I started down this road.
+            </p>
+            <p>
+                I taught myself Python and C, and I like building tools that solve
+                real problems for real people — usually as Telegram bots.
+                I'm also learning German, and I play chess and poker for the maths.
+            </p>
+        </section>
+
+        <section id="projects">
+            <h2><span class="num">02</span> Projects</h2>
+
+            <div class="cards">
+                <article class="card">
+                    <h3>monsoon_bot</h3>
+                    <p>
+                        A rain-prediction Telegram bot that sends forecasts in Khmer,
+                        using Open-Meteo / ECMWF weather data. Deployed on Railway.
+                    </p>
+                    <ul class="tags">
+                        <li>Python</li><li>Telegram API</li><li>Railway</li>
+                    </ul>
+                </article>
+
+                <article class="card">
+                    <h3>GeckoChecker</h3>
+                    <p>
+                        A Telegram bot that reads the timestamps on staff check-in photos
+                        with OCR and compares them to a schedule, flagging late or early arrivals
+                        automatically.
+                    </p>
+                    <ul class="tags">
+                        <li>Python</li><li>OCR</li><li>Excel</li>
+                    </ul>
+                </article>
+
+                <article class="card">
+                    <h3>Cooking Wars</h3>
+                    <p>
+                        An open-world Roblox game I'm building with two friends:
+                        fight bosses, steal their ingredients, and cook.
+                    </p>
+                    <ul class="tags">
+                        <li>Roblox</li><li>Luau</li><li>Game design</li>
+                    </ul>
+                </article>
+
+                <article class="card soon">
+                    <h3>rain.kokogecko.dev</h3>
+                    <p>A web dashboard for monsoon_bot. Coming soon.</p>
+                    <ul class="tags">
+                        <li>Web</li><li>In progress</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <section id="contact">
+            <h2><span class="num">03</span> Contact</h2>
+            <p>Find my code on GitHub.</p>
+            <a class="button" href="https://github.com/KokoGecko" target="_blank" rel="noopener">github.com/KokoGecko →</a>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2026 KokoGecko · built by hand, no frameworks</p>
+    </footer>
+
+</body>
+</html>

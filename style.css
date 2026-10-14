@@ -1,0 +1,203 @@
+/* ---------- colours: change these to re-theme the whole site ---------- */
+:root {
+    --bg: #0d120e;
+    --card: #141c16;
+    --border: #233025;
+    --text: #dfe9df;
+    --muted: #8fa391;
+    --green: #7bd88f;
+}
+
+/* ---------- basics ---------- */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", system-ui, sans-serif;
+    line-height: 1.7;
+}
+
+a {
+    color: var(--green);
+    text-decoration: none;
+}
+
+/* ---------- top nav ---------- */
+nav {
+    position: sticky;
+    top: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 18px 16px;
+    background: var(--bg);
+    font-family: "JetBrains Mono", monospace;
+    z-index: 10;
+}
+
+.logo {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.logo span {
+    color: var(--green);
+}
+
+.links a {
+    color: var(--muted);
+    margin-left: 20px;
+}
+
+.links a:hover {
+    color: var(--green);
+}
+
+/* ---------- page column ---------- */
+header,
+main,
+footer {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* ---------- hero ---------- */
+header {
+    padding-top: 90px;
+    padding-bottom: 60px;
+}
+
+.prompt {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--green);
+    margin: 0;
+}
+
+h1 {
+    font-size: clamp(3rem, 12vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1;
+    margin: 10px 0 20px;
+}
+
+.tagline {
+    font-size: 1.2rem;
+    color: var(--muted);
+    max-width: 520px;
+}
+
+/* ---------- sections ---------- */
+section {
+    padding: 50px 0;
+    border-top: 1px solid var(--border);
+}
+
+h2 {
+    font-size: 1.6rem;
+    margin-top: 0;
+}
+
+.num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 1rem;
+    color: var(--green);
+    margin-right: 8px;
+}
+
+/* ---------- project cards ---------- */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.card:hover {
+    border-color: var(--green);
+    transform: translateY(-3px);
+}
+
+.card h3 {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--green);
+    margin: 0 0 8px;
+}
+
+.card p {
+    color: var(--muted);
+    margin: 0 0 16px;
+}
+
+.card.soon {
+    border-style: dashed;
+}
+
+.tags {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tags li {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+}
+
+/* ---------- button ---------- */
+.button {
+    display: inline-block;
+    font-family: "JetBrains Mono", monospace;
+    padding: 12px 20px;
+    border: 1px solid var(--green);
+    border-radius: 8px;
+}
+
+.button:hover {
+    background: var(--green);
+    color: var(--bg);
+}
+
+/* ---------- footer ---------- */
+footer {
+    padding-top: 30px;
+    padding-bottom: 50px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 500px) {
+    .links a {
+        margin-left: 12px;
+    }
+
+    .cards {
+        grid-template-columns: 1fr;
+    }
+}

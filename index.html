@@ -1,55 +1,117 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-concept="a">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KokoGecko</title>
     <meta name="description" content="Koko — physics, code, and small useful bots. Phnom Penh.">
+
+    <!-- Pick the colour concept before anything is drawn: ?concept=b switches to concept B.
+         It runs this early so the page never flashes the wrong colours. -->
+    <script>
+        document.documentElement.dataset.concept =
+            new URLSearchParams(location.search).get("concept") === "b" ? "b" : "a";
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+
+    <!-- An import map tells the browser where "three" lives, so js/*.js can write
+         import * as THREE from "three". It must come before any module script. -->
+    <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 </head>
 <body>
 
-    <nav>
+    <nav class="hud" aria-label="Main">
         <a href="#top" class="logo">KOKOGECKO</a>
-        <div class="nav-right">
+        <div class="nav-links">
             <a href="#about">about</a>
             <a href="#projects">projects</a>
             <a href="#contact">contact</a>
-            <span class="score" title="Click the coins!"><i class="mini-coin"></i> x<b id="coin-count">00</b></span>
         </div>
+        <span class="score" id="score" title="Click the coins!" aria-live="polite">
+            <i class="mini-coin" aria-hidden="true"></i>
+            <span class="sr-only">Coins:</span>
+            x<b id="coin-count">00</b>
+        </span>
     </nav>
 
     <header class="hero" id="top">
-        <!-- sky decoration -->
-        <div class="cloud c1"></div>
-        <div class="cloud c2"></div>
-        <div class="cloud c3"></div>
-
-        <!-- collectable coins: click them! -->
-        <button class="coin-wrap" style="left: 12%; top: 38%; --d: 0s" aria-label="coin"><span class="coin"></span></button>
-        <button class="coin-wrap" style="left: 82%; top: 30%; --d: .4s" aria-label="coin"><span class="coin"></span></button>
-        <button class="coin-wrap" style="left: 68%; top: 56%; --d: .8s" aria-label="coin"><span class="coin"></span></button>
-        <button class="coin-wrap" style="left: 28%; top: 62%; --d: 1.2s" aria-label="coin"><span class="coin"></span></button>
-        <button class="coin-wrap" style="left: 92%; top: 62%; --d: .2s" aria-label="coin"><span class="coin"></span></button>
-
-        <div class="hero-text">
-            <p class="prompt">WORLD 1-1</p>
-            <h1>KOKO</h1>
-            <p class="tagline">Hi.</p>
-            <div class="hero-buttons">
-                <a class="start" href="#projects">PRESS START ▶</a>
-                <a class="start rain-btn" href="https://rain.kokogecko.dev">RAIN ☂</a>
-            </div>
+        <!-- Fallback scenery, drawn with CSS. Hidden when the 3D grove is running. -->
+        <div class="scenery" aria-hidden="true">
+            <div class="cloud c1"></div>
+            <div class="cloud c2"></div>
+            <div class="hill h1"></div>
+            <div class="hill h2"></div>
+            <div class="ground"></div>
         </div>
 
-        <!-- scenery -->
-        <div class="hill h1"></div>
-        <div class="hill h2"></div>
-        <div class="walker"><div class="gecko" id="gecko" title="Click me!"></div></div>
-        <div class="ground"></div>
+        <!-- The 3D blossom grove (js/main.js draws into it; hidden until it works) -->
+        <canvas class="grove-canvas" id="grove" role="img" aria-label="Koko, a green gecko with a pink bow"></canvas>
+
+        <div class="hero-inner">
+            <div class="hero-copy">
+                <p class="prompt">WORLD 1-1</p>
+                <h1>KOKO</h1>
+            </div>
+
+            <!-- The stage is the patch of ground where Koko stands -->
+            <div class="stage" id="stage">
+                <p class="bubble" id="bubble">Hi.</p>
+
+                <!-- collectable coins: click them! (left/top are measured inside the stage) -->
+                <button class="coin-wrap" type="button" style="left: 12%; top: 50%" aria-label="Collect coin"><span class="coin"></span></button>
+                <button class="coin-wrap" type="button" style="left: 27%; top: 26%" aria-label="Collect coin"><span class="coin"></span></button>
+                <button class="coin-wrap" type="button" style="left: 46%; top: 12%" aria-label="Collect coin"><span class="coin"></span></button>
+                <button class="coin-wrap" type="button" style="left: 66%; top: 18%" aria-label="Collect coin"><span class="coin"></span></button>
+                <button class="coin-wrap" type="button" style="left: 84%; top: 36%" aria-label="Collect coin"><span class="coin"></span></button>
+
+                <!-- Pixel Koko: the fallback when 3D is off. script.js draws it from the sprite map. -->
+                <div class="walker">
+                    <button class="gecko" id="gecko" type="button" title="Click me!" aria-label="Make Koko jump">
+                        <noscript>
+                            <!-- Without JavaScript, this copy of the same 16x10 sprite is shown instead.
+                                 Each rect is one run of same-coloured pixels: x, y (row) and width. -->
+                            <svg viewBox="0 0 16 10" shape-rendering="crispEdges" aria-hidden="true">
+                                <g fill="#43b047">
+                                    <rect x="10" y="0" width="5" height="1"/>
+                                    <rect x="9" y="1" width="1" height="1"/><rect x="15" y="1" width="1" height="1"/>
+                                    <rect x="9" y="2" width="1" height="1"/><rect x="15" y="2" width="1" height="1"/>
+                                    <rect x="3" y="3" width="2" height="1"/><rect x="9" y="3" width="1" height="1"/><rect x="15" y="3" width="1" height="1"/>
+                                    <rect x="2" y="4" width="4" height="1"/><rect x="7" y="4" width="8" height="1"/>
+                                    <rect x="1" y="5" width="2" height="1"/><rect x="5" y="5" width="4" height="1"/><rect x="14" y="5" width="1" height="1"/>
+                                    <rect x="0" y="6" width="2" height="1"/><rect x="13" y="6" width="1" height="1"/>
+                                    <rect x="1" y="7" width="3" height="1"/><rect x="5" y="7" width="6" height="1"/><rect x="12" y="7" width="2" height="1"/>
+                                    <rect x="2" y="8" width="2" height="1"/><rect x="5" y="8" width="1" height="1"/><rect x="10" y="8" width="2" height="1"/><rect x="13" y="8" width="1" height="1"/>
+                                    <rect x="2" y="9" width="2" height="1"/><rect x="5" y="9" width="2" height="1"/><rect x="10" y="9" width="2" height="1"/><rect x="13" y="9" width="2" height="1"/>
+                                </g>
+                                <g fill="#8be28b">
+                                    <rect x="10" y="1" width="5" height="1"/>
+                                    <rect x="10" y="2" width="1" height="1"/><rect x="13" y="2" width="2" height="1"/>
+                                    <rect x="10" y="3" width="3" height="1"/>
+                                    <rect x="3" y="5" width="2" height="1"/><rect x="9" y="5" width="5" height="1"/>
+                                    <rect x="2" y="6" width="11" height="1"/>
+                                </g>
+                                <rect x="4" y="7" width="1" height="1" fill="#2e8b3a"/><rect x="11" y="7" width="1" height="1" fill="#2e8b3a"/>
+                                <rect x="11" y="2" width="1" height="1" fill="#ffffff"/>
+                                <rect x="12" y="2" width="1" height="1" fill="#2b2b3a"/>
+                                <rect x="13" y="3" width="2" height="1" fill="#ff8fab"/>
+                            </svg>
+                        </noscript>
+                    </button>
+                </div>
+
+                <!-- 3D Koko's click area. js/main.js shows it and moves it to wherever Koko is drawn. -->
+                <button class="koko-hit" id="koko-hit" type="button" aria-label="Make Koko jump" hidden></button>
+            </div>
+
+            <div class="hero-buttons">
+                <a class="start" href="#projects">PRESS START ▶</a>
+                <a class="start start-alt rain-btn" href="https://rain.kokogecko.dev">RAIN ☂</a>
+            </div>
+        </div>
     </header>
 
     <main>
@@ -64,7 +126,7 @@
             <h2><span class="badge">2</span> Projects</h2>
 
             <div class="cards">
-                <article class="card red">
+                <article class="card">
                     <h3>monsoon_bot</h3>
                     <p>
                         A rain-prediction Telegram bot that sends forecasts in Khmer,
@@ -75,7 +137,7 @@
                     </ul>
                 </article>
 
-                <article class="card blue">
+                <article class="card">
                     <h3>GeckoChecker</h3>
                     <p>
                         A Telegram bot that reads the timestamps on staff check-in photos
@@ -87,7 +149,7 @@
                     </ul>
                 </article>
 
-                <article class="card yellow">
+                <article class="card">
                     <h3>Cooking Wars</h3>
                     <p>
                         An open-world Roblox game I'm building with two friends:
@@ -98,7 +160,7 @@
                     </ul>
                 </article>
 
-                <a class="card green card-link" href="https://rain.kokogecko.dev">
+                <a class="card card-link" href="https://rain.kokogecko.dev">
                     <h3>rain.kokogecko.dev</h3>
                     <p>A private family dashboard for monsoon_bot's rain forecasts, in Khmer and English. Login required.</p>
                     <ul class="tags">
@@ -121,6 +183,9 @@
         <p>© 2026 KokoGecko · built by hand, no frameworks</p>
     </footer>
 
+    <!-- script.js: pixel Koko, coins. Works on its own, even if the 3D never loads. -->
     <script src="script.js"></script>
+    <!-- js/main.js: the 3D grove. If anything goes wrong, the pixel Koko simply stays. -->
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

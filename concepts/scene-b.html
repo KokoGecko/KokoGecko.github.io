@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Concept B · Monsoon island (scene test)</title>
+    <style>
+        /* Palette B tokens (the same names the real page uses) */
+        :root {
+            --mist: #f7dde1;
+            --mist-deep: #ecc3cb;
+            --rose: #b03a5e;
+            --slate: #2e5560;
+            --ink: #1d2a2f;
+        }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* The studio backdrop: plain mist with a soft deeper floor. The canvas is transparent on top. */
+        body {
+            background:
+                radial-gradient(120% 70% at 50% 42%, var(--mist) 0%, rgba(247, 221, 225, 0) 70%),
+                linear-gradient(180deg, var(--mist) 0%, var(--mist-deep) 100%);
+            color: var(--ink);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* A stand-in for the real hero title, so we can check the calm space above the island. */
+        .title {
+            position: fixed;
+            top: 9vh;
+            left: 0;
+            right: 0;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .title h1 {
+            margin: 0;
+            font-size: clamp(56px, 19vw, 132px);
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            line-height: 1;
+        }
+
+        .title p {
+            margin: 12px 0 0;
+            font-size: 16px;
+            font-weight: 600;
+            opacity: 0.75;
+        }
+
+        @media (min-aspect-ratio: 1/1) {
+            .title {
+                top: 34vh;
+                left: 8vw;
+                right: auto;
+                text-align: left;
+            }
+        }
+
+        .rain-btn {
+            position: fixed;
+            left: 16px;
+            bottom: 16px;
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--slate);
+            color: #fff;
+            font: 600 14px/1 system-ui, sans-serif;
+            cursor: pointer;
+        }
+
+        .rain-btn:focus-visible {
+            outline: 2px solid var(--rose);
+            outline-offset: 2px;
+        }
+
+        .capture .rain-btn { display: none; }
+    </style>
+    <script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+</head>
+<body>
+    <canvas id="scene" aria-label="Koko's floating blossom island"></canvas>
+    <header class="title">
+        <h1>KOKO</h1>
+        <p>physics, code and small useful bots</p>
+    </header>
+    <button class="rain-btn" type="button">Make it rain</button>
+
+    <script type="module">
+        // ---------- 1. Setup ----------
+        import * as THREE from "three";
+        import { createGrove } from "../js/grove-b.js";
+
+        const params = new URLSearchParams(location.search);
+        const capture = params.get("capture") === "1";
+        const reducedQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const reduced = params.get("reduced") === "1" || reducedQuery.matches;
+        const quality = params.get("quality") || (window.innerWidth < 768 ? "low" : "high");
+        if (capture) document.documentElement.classList.add("capture");
+
+        const canvas = document.getElementById("scene");
+        // Same renderer settings as js/main.js, so this page shows what the site will show.
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setClearColor(0x000000, 0);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+        const grove = createGrove({ renderer, reducedMotion: reduced, quality });
+
+        // ---------- 2. Koko: the real model if it is ready, else a green placeholder box ----------
+        async function loadKoko() {
+            try {
+                const model = await import("../js/koko-model.js");
+                return model.buildKoko({ bow: "ribbon", withCloud: true });
+            } catch (error) {
+                console.warn("koko-model.js not ready, using a placeholder:", error.message);
+                const root = new THREE.Group();
+                const box = new THREE.Mesh(
+                    new THREE.BoxGeometry(16, 10, 5),
+                    new THREE.MeshStandardMaterial({ color: "#43b047", roughness: 0.5 }));
+                box.position.y = 5;
+                root.add(box);
+                return { root, cloud: null, anchors: { cloudHome: new THREE.Vector3(0, 16, 0) } };
+            }
+        }
+
+        async function loadAnimator(koko) {
+            if (params.get("anim") === "0" || !koko.rig) return null;
+            try {
+                const anim = await import("../js/koko-anim.js");
+                const animator = anim.createKokoAnimator(koko, { reducedMotion: reduced });
+                if (capture && typeof animator.pose === "function") animator.pose("hero");
+                return animator;
+            } catch (error) {
+                console.warn("koko-anim.js not ready, Koko stays still:", error.message);
+                return null;
+            }
+        }
+
+        const koko = await loadKoko();
+        grove.kokoSpot.add(koko.root);
+        if (koko.cloud) grove.scene.add(koko.cloud.root);
+        const animator = await loadAnimator(koko);
+
+        // Without the animator, park Koko's little cloud at its home anchor.
+        function parkCloud() {
+            if (!koko.cloud || animator) return;
+            grove.scene.updateMatrixWorld(true);
+            koko.cloud.root.position.copy(grove.kokoSpot.localToWorld(koko.anchors.cloudHome.clone()));
+        }
+
+        // ---------- 3. Size ----------
+        function resize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height, false);
+            const portrait = height >= width;
+            grove.resize(width, height, portrait ? { kokoX: 0.5, kokoY: 0.7 } : { kokoX: 0.68, kokoY: 0.62 });
+        }
+        resize();
+        window.addEventListener("resize", () => { resize(); if (!running()) render(); });
+
+        // ---------- 4. Input (pointer parallax) ----------
+        const input = { pointer: { x: 0, y: 0 }, scroll: 0 };
+        const pointerTarget = { x: 0, y: 0 };
+        window.addEventListener("pointermove", (event) => {
+            pointerTarget.x = (event.clientX / window.innerWidth) * 2 - 1;
+            pointerTarget.y = -((event.clientY / window.innerHeight) * 2 - 1);
+        });
+
+        let weatherTarget = 0;
+        document.querySelector(".rain-btn").addEventListener("click", () => {
+            weatherTarget = weatherTarget > 0.5 ? 0 : 1;
+            grove.setWeather(weatherTarget);
+        });
+
+        // ---------- 5. Step + render ----------
+        let elapsed = 0;
+        function step(dt) {
+            elapsed += dt;
+            input.pointer.x += (pointerTarget.x - input.pointer.x) * Math.min(1, dt * 4);
+            input.pointer.y += (pointerTarget.y - input.pointer.y) * Math.min(1, dt * 4);
+            grove.update(dt, elapsed, input);
+            if (animator) animator.update(dt, elapsed);
+            parkCloud();
+        }
+
+        function render() {
+            renderer.render(grove.scene, grove.camera);
+            const info = renderer.info.render;
+            return { calls: info.calls, triangles: info.triangles, stats: grove.stats() };
+        }
+
+        // ---------- 6. Loop (paused when the tab is hidden or the canvas is off-screen) ----------
+        let visible = true;
+        let rafId = 0;
+        let last = 0;
+        const running = () => !capture && !reduced;
+
+        function tick(now) {
+            rafId = 0;
+            if (!visible || document.hidden) return;
+            const dt = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60;
+            last = now;
+            step(dt);
+            render();
+            rafId = requestAnimationFrame(tick);
+        }
+
+        function startLoop() {
+            if (!running() || rafId) return;
+            last = 0;
+            rafId = requestAnimationFrame(tick);
+        }
+
+        new IntersectionObserver((entries) => {
+            visible = entries[0].isIntersecting;
+            if (visible) startLoop();
+        }).observe(canvas);
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) startLoop(); });
+
+        step(0);
+        const first = render();
+        console.log("[scene-b] draw calls:", first.calls, "triangles:", first.triangles, "stats:", JSON.stringify(first.stats));
+
+        if (capture) {
+            // Deterministic frames for screenshots: the test script drives time itself.
+            window.__scene = {
+                ready: Promise.resolve(true),
+                step(dt) { step(dt); },
+                render() {
+                    const result = render();
+                    console.log("[scene-b] draw calls:", result.calls, "triangles:", result.triangles);
+                    return result;
+                },
+                setPointer(x, y) { pointerTarget.x = x; pointerTarget.y = y; input.pointer.x = x; input.pointer.y = y; },
+                setWeather(t, immediate = false) { grove.setWeather(t, { immediate }); },
+                burst(x, y, z) { grove.burstPetals(new THREE.Vector3(x, y, z)); },
+                grove,
+                koko,
+                renderer
+            };
+        } else {
+            startLoop();
+        }
+    </script>
+</body>
+</html>

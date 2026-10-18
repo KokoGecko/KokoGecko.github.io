@@ -39,15 +39,6 @@
     </nav>
 
     <header class="hero" id="top">
-        <!-- Fallback scenery, drawn with CSS. Hidden when the 3D grove is running. -->
-        <div class="scenery" aria-hidden="true">
-            <div class="cloud c1"></div>
-            <div class="cloud c2"></div>
-            <div class="hill h1"></div>
-            <div class="hill h2"></div>
-            <div class="ground"></div>
-        </div>
-
         <!-- The 3D blossom grove (js/main.js draws into it; hidden until it works) -->
         <canvas class="grove-canvas" id="grove" role="img" aria-label="Koko, a green gecko with a pink bow"></canvas>
 
@@ -59,14 +50,25 @@
 
             <!-- The stage is the patch of ground where Koko stands -->
             <div class="stage" id="stage">
+                <!-- Fallback scenery, drawn with CSS. Hidden when the 3D grove is running. -->
+                <div class="scenery" aria-hidden="true">
+                    <div class="cloud"></div>
+                    <div class="tree t1"></div>
+                    <div class="tree t2"></div>
+                    <div class="ground"></div>
+                </div>
+
                 <p class="bubble" id="bubble">Hi.</p>
 
-                <!-- collectable coins: click them! (left/top are measured inside the stage) -->
-                <button class="coin-wrap" type="button" style="left: 12%; top: 50%" aria-label="Collect coin"><span class="coin"></span></button>
-                <button class="coin-wrap" type="button" style="left: 27%; top: 26%" aria-label="Collect coin"><span class="coin"></span></button>
-                <button class="coin-wrap" type="button" style="left: 46%; top: 12%" aria-label="Collect coin"><span class="coin"></span></button>
-                <button class="coin-wrap" type="button" style="left: 66%; top: 18%" aria-label="Collect coin"><span class="coin"></span></button>
-                <button class="coin-wrap" type="button" style="left: 84%; top: 36%" aria-label="Collect coin"><span class="coin"></span></button>
+                <!-- collectable coins: click them! An arc above Koko's head
+                     (left/top are measured inside the .coins box) -->
+                <div class="coins">
+                    <button class="coin-wrap" type="button" style="left: 6%; top: 86%" aria-label="Collect coin"><span class="coin"></span></button>
+                    <button class="coin-wrap" type="button" style="left: 26%; top: 38%" aria-label="Collect coin"><span class="coin"></span></button>
+                    <button class="coin-wrap" type="button" style="left: 50%; top: 14%" aria-label="Collect coin"><span class="coin"></span></button>
+                    <button class="coin-wrap" type="button" style="left: 74%; top: 38%" aria-label="Collect coin"><span class="coin"></span></button>
+                    <button class="coin-wrap" type="button" style="left: 94%; top: 86%" aria-label="Collect coin"><span class="coin"></span></button>
+                </div>
 
                 <!-- Pixel Koko: the fallback when 3D is off. script.js draws it from the sprite map. -->
                 <div class="walker">
@@ -108,8 +110,8 @@
             </div>
 
             <div class="hero-buttons">
-                <a class="start" href="#projects">PRESS START ▶</a>
-                <a class="start start-alt rain-btn" href="https://rain.kokogecko.dev">RAIN ☂</a>
+                <a class="start" href="#projects">PRESS START <span class="glyph">▶</span></a>
+                <a class="start start-alt rain-btn" href="https://rain.kokogecko.dev">RAIN <span class="glyph">☂</span></a>
             </div>
         </div>
     </header>
@@ -174,7 +176,7 @@
             <h2><span class="badge">3</span> Contact</h2>
             <div class="panel">
                 <p>Find my code on GitHub.</p>
-                <a class="start" href="https://github.com/KokoGecko" target="_blank" rel="noopener">GITHUB ▶</a>
+                <a class="start" href="https://github.com/KokoGecko" target="_blank" rel="noopener">GITHUB <span class="glyph">▶</span></a>
             </div>
         </section>
     </main>

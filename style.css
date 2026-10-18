@@ -1,396 +1,902 @@
 /* =========================================================
-   Palette: change these and the whole site re-themes
+   KokoGecko — style.css
+   1. Design tokens (two colour concepts: A and B)
+   2. Base and buttons
+   3. Nav (the game HUD)
+   4. Hero (WORLD 1-1)
+   5. Fallback scenery (when there is no 3D)
+   6. Koko, the speech bubble and the coins
+   7. Levels: sections, panels, project cards
+   8. Footer (the ground at the end of the level)
+   9. Animations
+   10. Reduced motion
+   11. Wider screens
+   ========================================================= */
+
+
+/* =========================================================
+   1. Design tokens
+   Change these and the whole site re-themes.
    ========================================================= */
 :root {
-    --sky: #5c94fc;
-    --sky-light: #a9d4ff;
-    --red: #e8383d;
-    --blue: #2f6fe0;
-    --yellow: #fbd000;
-    --green: #43b047;
-    --green-dark: #2e8b3a;
-    --brick: #c84c0c;
-    --brick-dark: #8f3507;
-    --cream: #fff6dc;
-    --ink: #2b2b3a;
-    --px: "Press Start 2P", monospace;
+    /* type: two families, a short scale */
+    --font-pixel: "Press Start 2P", ui-monospace, monospace;   /* headings, buttons, labels */
+    --font-body: "Nunito", system-ui, sans-serif;               /* reading text */
+    --text-ui: 0.75rem;          /* 12px  pixel font: nav, buttons, labels, card titles */
+    --text-h2: 1rem;             /* 16px  pixel font: level titles (20px on wide screens) */
+    --text-display: clamp(3.5rem, 18vw, 7rem);  /* the big KOKO */
+    --text-body: 1rem;           /* 16px  reading text */
+    --text-lead: 1.125rem;       /* 18px  the one-line panels */
+    --text-small: 0.875rem;      /* 14px  tags, footer */
+    --leading-pixel: 1.5;        /* the pixel font is tall, so it needs room between lines */
+    --leading-body: 1.55;
+
+    /* spacing: everything is a multiple of 4px */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-24: 96px;
+
+    /* one "voxel": the size of a shadow step and of a pressed button's travel */
+    --step: 4px;
+
+    /* layout */
+    --page-wide: 1280px;         /* page content never gets wider than this */
+    --page-text: 960px;          /* the levels column */
+    --edge: var(--space-4);      /* side gutter; wider screens line everything up on one left edge */
+    --nav-h: 96px;               /* two rows on phones (one row on wide screens, see section 11) */
+    --ground-h: 128px;           /* the strip of ground at the bottom of the hero */
+    --sprite: 128px;             /* pixel Koko's width: 16 pixels x 8 */
+    --tree-scale: 1;             /* fallback trees grow on wide screens */
+    --tap: 44px;                 /* smallest touch target */
+
+    /* a circle drawn in pixel steps (clip-path cuts coins to this shape) */
+    --pixel-circle: polygon(
+        30% 0, 70% 0, 70% 10%, 85% 10%, 85% 15%, 90% 15%, 90% 30%, 100% 30%,
+        100% 70%, 90% 70%, 90% 85%, 85% 85%, 85% 90%, 70% 90%, 70% 100%,
+        30% 100%, 30% 90%, 15% 90%, 15% 85%, 10% 85%, 10% 70%, 0 70%,
+        0 30%, 10% 30%, 10% 15%, 15% 15%, 15% 10%, 30% 10%);
+
+    /* motion */
+    --dur-fast: 120ms;
+    --dur: 240ms;
+    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* ---------- Concept A: "Wake-up" golden grove (round, soft) ---------- */
+:root,
+:root[data-concept="a"] {
+    --bg: #fff2ec;              /* haze: page background */
+    --surface: #ffffff;         /* panels, cards, bubble */
+    --ink: #2a1a20;             /* text and outlines */
+    --ink-soft: #6a3d4c;        /* card descriptions */
+    --accent: #b8325e;          /* rose: logo, main buttons, the linked card */
+    --on-accent: #ffffff;       /* text on rose */
+    --blossom: #f6a3bf;
+    --blossom-light: #ffd0de;
+    --blossom-shade: #e46f96;
+    --koko: #43b047;            /* leaf: Koko green, the complementary accent */
+    --coin: #ffc53d;            /* gold */
+    --coin-edge: #8a5300;
+    --grass: #7cc35b;
+    --grass-light: #9bd67c;
+    --grass-dark: #3f8f43;
+    --earth: #6b4a3a;           /* bark */
+    --earth-deep: #4f3529;
+
+    --chip: var(--blossom-light);       /* quiet tag chips */
+    --step-1: var(--blossom);           /* the stepped "voxel" shadow under blocks */
+    --step-2: var(--blossom-shade);
+
+    /* the hero sky: warm haze at the top, peach near the horizon, a soft sun upper-left */
+    --hero-bg:
+        radial-gradient(circle at 16% 12%, #fff4d6 0 6%, rgba(255, 244, 214, 0.8) 11%, rgba(255, 244, 214, 0) 34%),
+        linear-gradient(180deg, #fff2ec 0%, #ffe6da 40%, #ffd6c4 72%, #ffd0de 100%);
+
+    /* one radius scale: round and soft */
+    --r-s: 6px;
+    --r-m: 10px;
+    --r-l: 16px;
+}
+
+/* ---------- Concept B: "Monsoon" lantern island (angular, tiered) ---------- */
+:root[data-concept="b"] {
+    --bg: #f7dde1;              /* mist */
+    --surface: #ffffff;
+    --ink: #1d2a2f;
+    --ink-soft: #3d5158;
+    --accent: #b03a5e;
+    --on-accent: #ffffff;
+    --blossom: #ee7fa0;
+    --blossom-light: #ffc2d3;
+    --blossom-shade: #c9567a;
+    --koko: #43b047;
+    --coin: #ffc53d;
+    --coin-edge: #8a5300;
+    --grass: #6dbb57;
+    --grass-light: #8fd17a;
+    --grass-dark: #3f8f43;
+    --earth: #8a5a44;           /* soil */
+    --earth-deep: #5e3b2e;      /* soil-dark */
+
+    --chip: var(--blossom-light);
+    --step-1: #ecc3cb;          /* mist-deep */
+    --step-2: var(--blossom-shade);
+
+    /* a plain studio backdrop: lighter in the middle, deeper rose at the edges */
+    --hero-bg:
+        radial-gradient(ellipse 90% 75% at 50% 45%, #fff3f5 0%, #f7dde1 55%, #ecc3cb 100%);
+
+    /* one radius scale: crisp, nearly square */
+    --r-s: 2px;
+    --r-m: 4px;
+    --r-l: 6px;
+}
+
+
+/* =========================================================
+   2. Base and buttons
+   ========================================================= */
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html {
+    background: var(--bg);
+    -webkit-text-size-adjust: 100%;
+}
 
 body {
     margin: 0;
-    background: var(--cream);
+    background: var(--bg);
     color: var(--ink);
-    font-family: "Nunito", system-ui, sans-serif;
-    font-weight: 600;
-    line-height: 1.7;
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    font-weight: 500;
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;            /* belt and braces: nothing may scroll sideways */
 }
 
 a { color: inherit; text-decoration: none; }
 
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* One focus ring for everything you can tab to */
+:focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 3px;
+}
+
+/* Text only screen readers hear */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* The main button, used in the hero and in Contact.
+   It sits on a 4px ink "key side" and sinks into it when pressed. */
+.start {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 48px;
+    padding: 0 var(--space-4);
+    background: var(--accent);
+    color: var(--on-accent);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-m);
+    box-shadow: 0 var(--step) 0 var(--ink);
+    font-family: var(--font-pixel);
+    font-size: var(--text-ui);
+    line-height: 1;
+    white-space: nowrap;
+    transition: transform var(--dur-fast) var(--ease-out);
+}
+.start:active {
+    transform: translateY(var(--step));
+    box-shadow: 0 0 0 var(--ink);
+}
+@media (hover: hover) {
+    .start:hover { transform: translateY(-2px); }
+    .start:active { transform: translateY(var(--step)); }
+}
+
+/* the quieter button (RAIN) */
+.start-alt {
+    background: var(--surface);
+    color: var(--ink);
+}
+
+/* ▶ ☂ ↗ are not in the pixel font, so they get a bigger size from the body font */
+.glyph {
+    font-family: var(--font-body);
+    font-size: 1.5em;
+    font-weight: 700;
+    line-height: 0;
+    font-variant-emoji: text;    /* a plain symbol, not a colour emoji */
+}
+
+
 /* =========================================================
-   Nav
+   3. Nav: a game HUD. Phones get two rows, wide screens one.
    ========================================================= */
-nav {
-    position: sticky;
-    top: 0;
+.hud {
+    position: relative;
     z-index: 50;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+        "logo  score"
+        "links links";
+    align-content: center;
+    align-items: center;
+    min-height: var(--nav-h);
+    padding: 0 var(--space-2);
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    font-family: var(--font-pixel);
+    font-size: var(--text-ui);
+    line-height: 1;
+}
+
+.logo,
+.nav-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0 var(--space-2);
+    border-radius: var(--r-s);
+}
+
+.logo {
+    grid-area: logo;
+    justify-self: start;
+    color: var(--accent);
+}
+
+.nav-links {
+    grid-area: links;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 20px;
-    background: #fff;
-    border-bottom: 4px solid var(--ink);
-    font-family: var(--px);
-    font-size: 0.6rem;
+}
+.nav-links a {
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+}
+@media (hover: hover) {
+    .nav-links a:hover { color: var(--accent); text-decoration-line: underline; }
 }
 
-.logo { color: var(--red); font-size: 0.8rem; }
-
-.nav-right { display: flex; align-items: center; gap: 18px; }
-.nav-right a:hover { color: var(--blue); }
-
-.score { display: flex; align-items: center; gap: 6px; }
+.score {
+    grid-area: score;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap);
+    padding: 0 var(--space-2);
+    font-variant-numeric: tabular-nums;
+}
+.score b { font-weight: 400; }
 
 .mini-coin {
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: var(--yellow);
-    border: 2px solid #b8860b;
     display: inline-block;
+    width: 16px;
+    height: 16px;
+    background: var(--coin);
+    box-shadow: inset 0 0 0 2px var(--coin-edge), inset 4px 4px 0 rgba(255, 255, 255, 0.55);
+    clip-path: var(--pixel-circle);
 }
+.score.got .mini-coin { animation: got var(--dur) var(--ease-out); }
+
 
 /* =========================================================
-   Hero
+   4. Hero: WORLD 1-1
+   A grid like a game title screen: the title at the top, the stage (where Koko stands)
+   in the middle, and the buttons on the strip of ground at the bottom.
    ========================================================= */
 .hero {
     position: relative;
-    min-height: 620px;
-    padding: 70px 20px 220px;
+    isolation: isolate;          /* keeps the hero's layers (z-index) inside the hero */
+    display: grid;
+    min-height: max(560px, calc(100svh - var(--nav-h)));
     overflow: hidden;
-    background: linear-gradient(var(--sky) 0%, var(--sky-light) 100%);
-    border-bottom: 4px solid var(--ink);
+    background: var(--hero-bg);
+    border-bottom: 2px solid var(--ink);
 }
 
-.hero-text {
+/* the 3D canvas covers the whole hero, behind the words */
+.grove-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+.has-3d .grove-canvas {
+    display: block;
+    animation: fade-in 400ms var(--ease-out) both;
+}
+
+.hero-inner {
     position: relative;
-    z-index: 5;
-    max-width: 760px;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(280px, 1fr) var(--ground-h);
+    grid-template-areas:
+        "copy"
+        "stage"
+        "actions";
+    width: 100%;
+    max-width: var(--page-wide);
     margin: 0 auto;
+    padding: var(--space-8) var(--edge) 0;
+}
+
+.hero-copy {
+    grid-area: copy;
     text-align: center;
 }
 
 .prompt {
-    display: inline-block;
-    margin: 0 0 16px;
-    padding: 6px 12px;
-    background: var(--ink);
-    color: var(--yellow);
-    font-family: var(--px);
-    font-size: 0.65rem;
-}
-
-h1 {
-    margin: 0 0 22px;
-    font-family: var(--px);
-    font-size: clamp(3rem, 14vw, 6rem);
+    margin: 0 0 var(--space-4);
+    font-family: var(--font-pixel);
+    font-size: var(--text-ui);
     line-height: 1;
-    color: #fff;
-    text-shadow: 4px 4px 0 var(--red), 8px 8px 0 var(--ink);
-    animation: float 3s ease-in-out infinite;
+    letter-spacing: 0.08em;
 }
 
-.tagline {
-    display: inline-block;
-    max-width: 520px;
-    margin: 0 0 26px;
-    padding: 12px 18px;
-    background: #fff;
-    border: 4px solid var(--ink);
-    border-radius: 12px;
-    box-shadow: 5px 5px 0 var(--ink);
-    font-weight: 800;
+/* KOKO: rose letters on a two-step voxel extrusion */
+h1 {
+    margin: 0;
+    font-family: var(--font-pixel);
+    font-size: var(--text-display);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--accent);
+    text-shadow:
+        0.04em 0.04em 0 var(--ink),
+        0.08em 0.08em 0 var(--ink);
 }
 
-/* button used in hero + contact */
-.start {
-    display: inline-block;
-    padding: 14px 22px;
-    background: var(--red);
-    color: #fff;
-    border: 4px solid var(--ink);
-    border-radius: 8px;
-    box-shadow: 0 6px 0 var(--ink);
-    font-family: var(--px);
-    font-size: 0.75rem;
-    transition: transform 0.1s, box-shadow 0.1s;
-}
-.start:hover { transform: translateY(-3px); box-shadow: 0 9px 0 var(--ink); }
-.start:active { transform: translateY(6px); box-shadow: 0 0 0 var(--ink); }
-
-.hero .start { display: block; width: fit-content; margin: 8px auto 0; }
-
-/* ---------- clouds (drift across the sky) ---------- */
-.cloud {
-    position: absolute;
-    left: -160px;
-    width: 90px;
-    height: 30px;
-    background: #fff;
-    border-radius: 30px;
-    box-shadow: 0 4px 0 rgba(43, 43, 58, 0.12);
-    animation: drift linear infinite;
+.hero-buttons {
+    grid-area: actions;
+    position: relative;          /* paint above the scenery */
     z-index: 1;
-}
-.cloud::before, .cloud::after {
-    content: "";
-    position: absolute;
-    background: #fff;
-    border-radius: 50%;
-}
-.cloud::before { width: 44px; height: 44px; left: 12px; top: -22px; }
-.cloud::after  { width: 34px; height: 34px; left: 44px; top: -16px; }
-
-.c1 { top: 90px;  animation-duration: 42s; }
-.c2 { top: 200px; animation-duration: 58s; animation-delay: -20s; transform: scale(1.4); }
-.c3 { top: 150px; animation-duration: 70s; animation-delay: -45s; transform: scale(0.8); }
-
-/* ---------- hills ---------- */
-.hill {
-    position: absolute;
-    bottom: 64px;
-    background: var(--green);
-    border: 4px solid var(--ink);
-    border-bottom: none;
-    border-radius: 50% 50% 0 0;
-    z-index: 2;
-}
-.hill.h1 { left: -60px;  width: 420px; height: 150px; }
-.hill.h2 { right: -80px; width: 520px; height: 200px; background: var(--green-dark); }
-
-/* ---------- ground: grass on top, bricks below ---------- */
-.ground {
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: 64px;
-    z-index: 4;
-    border-top: 4px solid var(--ink);
-    background-color: var(--brick);
-    background-image:
-        linear-gradient(var(--brick-dark) 3px, transparent 3px),
-        linear-gradient(90deg, var(--brick-dark) 3px, transparent 3px);
-    background-size: 40px 20px;
-}
-.ground::before {          /* grass strip */
-    content: "";
-    position: absolute;
-    left: 0; right: 0; top: 0;
-    height: 14px;
-    background: var(--green);
-    border-bottom: 4px solid var(--green-dark);
+    align-self: end;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    padding-bottom: var(--space-6);
 }
 
-/* ---------- the pixel gecko ---------- */
-.walker {
-    position: absolute;
-    bottom: 68px;
-    left: 0;
-    z-index: 6;
-    animation: walk 22s linear infinite;
-}
-
-.gecko {
-    width: 96px;
-    cursor: pointer;
-    animation: bob 0.5s steps(2) infinite;   /* 2-frame "walking" wobble */
-}
-.gecko svg { display: block; width: 100%; height: auto; }
-.gecko.jump { animation: jump 0.6s ease-out; }
-
-/* ---------- coins ---------- */
-.coin-wrap {
-    position: absolute;
-    z-index: 5;
-    padding: 0;
-    border: none;
-    background: none;
-    cursor: pointer;
-    animation: float 2.4s ease-in-out infinite;
-    animation-delay: var(--d);
-}
-.coin {
-    display: block;
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    background: var(--yellow);
-    border: 4px solid #b8860b;
-    box-shadow: inset -4px -4px 0 rgba(0,0,0,0.12), inset 4px 4px 0 rgba(255,255,255,0.5);
-    animation: spin 1.2s ease-in-out infinite;
-    animation-delay: var(--d);
-}
-.coin-wrap.collected { animation: pop 0.5s ease-out forwards; pointer-events: none; }
 
 /* =========================================================
-   Sections
+   5. Fallback scenery (CSS only). The 3D grove replaces it.
+   It lives inside the stage, so "bottom: 0" is the ground Koko stands on.
    ========================================================= */
-main, footer {
-    max-width: 860px;
-    margin: 0 auto;
-    padding: 0 20px;
+.scenery {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+.has-3d .scenery { display: none; }
+
+/* a soft cloud (concept A) */
+.cloud {
+    position: absolute;
+    left: 4%;
+    top: 12%;
+    width: 96px;
+    height: 24px;
+    background: #fff;
+    border-radius: 24px;
+}
+.cloud::before {
+    content: "";
+    position: absolute;
+    left: 20px;
+    top: -18px;
+    width: 40px;
+    height: 40px;
+    background: inherit;
+    border-radius: 50%;
 }
 
-section { padding: 56px 0 10px; }
+/* A blossom tree: the element is the trunk, ::before the canopy, ::after a lighter puff on top */
+.tree {
+    position: absolute;
+    bottom: var(--floor);
+    width: 16px;
+    height: 112px;
+    background: var(--earth);
+}
+.tree::before,
+.tree::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+}
+.tree::before {
+    left: -92px;
+    bottom: 72px;
+    width: 200px;
+    height: 144px;
+    background: var(--blossom);
+    box-shadow: inset 0 -16px 0 var(--blossom-shade);
+}
+.tree::after {
+    left: -44px;
+    bottom: 160px;
+    width: 120px;
+    height: 88px;
+    background: var(--blossom-light);
+}
+.tree { transform: scale(var(--tree-scale)); transform-origin: bottom; }
+.t1 { left: 4%; }
+.t2 { right: -8px; transform: scale(calc(var(--tree-scale) * 1.15)); }
+
+/* the ground: a grass strip under the whole hero, from Koko's feet down */
+.ground {
+    position: absolute;
+    top: 100%;
+    left: -100vw;
+    right: -100vw;
+    height: var(--ground-h);
+    background: var(--grass);
+    box-shadow: inset 0 var(--step) 0 var(--grass-light), inset 0 -40px 0 var(--grass-dark);
+}
+
+/* Concept B: a little floating island with two tiered (niwaki) blossom trees */
+[data-concept="b"] .cloud { display: none; }
+[data-concept="b"] .tree {
+    width: 12px;
+    height: 80px;
+    background: var(--earth-deep);
+}
+[data-concept="b"] .tree::before,
+[data-concept="b"] .tree::after {
+    border-radius: var(--r-m);
+    background: var(--blossom-shade);
+    box-shadow: inset 0 8px 0 var(--blossom);
+}
+[data-concept="b"] .tree::before { left: -54px; bottom: 48px; width: 120px; height: 24px; }
+[data-concept="b"] .tree::after  { left: -30px; bottom: 88px; width: 72px; height: 24px; }
+[data-concept="b"] .t1 { left: calc(50% - var(--sprite) * 1.05); }
+[data-concept="b"] .t2 { left: calc(50% + var(--sprite) * 0.9); right: auto; transform: scale(calc(var(--tree-scale) * 0.8)); }
+[data-concept="b"] .ground {
+    top: calc(100% - var(--floor));
+    left: 50%;
+    right: auto;
+    width: min(calc(var(--sprite) * 2.65), 96%);
+    height: 44px;
+    transform: translateX(-50%);
+    border-radius: 0 0 var(--r-m) var(--r-m);
+    background: var(--earth);
+    box-shadow:
+        inset 0 12px 0 var(--grass),
+        inset 0 16px 0 var(--grass-dark),
+        inset 0 -12px 0 var(--earth-deep),
+        0 32px 24px -20px rgba(94, 59, 46, 0.5);    /* soft contact shadow, like a studio photo */
+}
+
+
+/* =========================================================
+   6. Koko, the speech bubble and the coins
+   ========================================================= */
+.stage {
+    grid-area: stage;
+    position: relative;
+    --floor: 0px;                /* how high above the stage bottom Koko stands */
+}
+/* the island floats in the middle of the stage, so Koko stands higher */
+[data-concept="b"] .stage { --floor: 26%; }
+
+/* Pixel Koko stands at the bottom-centre of the stage */
+.walker {
+    position: absolute;
+    left: 50%;
+    bottom: var(--floor);
+    z-index: 2;
+    transform: translateX(-50%);
+}
+/* With 3D the sprite is hidden but keeps its place: js/main.js measures it to know where
+   the 3D Koko should stand. (visibility: hidden also takes it out of the Tab order.) */
+.has-3d .walker { visibility: hidden; }
+.has-3d .gecko svg { animation: none; }
+
+.gecko {
+    display: block;
+    width: var(--sprite);
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: var(--r-s);
+}
+.gecko svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    animation: bob 1s steps(2) infinite;   /* a 2-frame idle wobble, like an old game */
+}
+.gecko.jump { animation: jump 0.6s var(--ease-out); }
+
+/* 3D Koko's invisible click area. js/main.js sets its size and moves it with transform. */
+.koko-hit {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 2;
+    width: 120px;
+    height: 96px;
+    padding: 0;
+    border: 0;
+    background: none;
+    border-radius: var(--r-l);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.koko-hit[hidden] { display: none; }
+.koko-hit:focus-visible { outline-style: dashed; }
+
+/* "Hi." is Koko's speech bubble. Without 3D it sits by the pixel sprite's head;
+   with 3D, js/main.js moves it next to the 3D head (transform only). */
+.bubble {
+    position: absolute;
+    left: calc(50% + var(--sprite) * 0.3);
+    bottom: calc(var(--floor) + var(--sprite) * 0.8);
+    z-index: 3;
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-m);
+    box-shadow: var(--step) var(--step) 0 var(--step-1);
+    font-family: var(--font-pixel);
+    font-size: var(--text-ui);
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+}
+/* the tail: a little stepped (pixel) triangle pointing down-left at Koko */
+.bubble::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: 100%;
+    width: 12px;
+    height: 12px;
+    background: var(--ink);
+    clip-path: polygon(0 0, 100% 0, 100% 34%, 67% 34%, 67% 67%, 34% 67%, 34% 100%, 0 100%);
+}
+.has-3d .bubble {
+    left: 0;
+    top: 0;
+    bottom: auto;
+    will-change: transform;
+    transition: opacity var(--dur) var(--ease-out);
+}
+/* while Koko makes his entrance, the bubble waits */
+.intro-playing .bubble { opacity: 0; }
+
+/* The coins hang in an arc above Koko's head */
+.coins {
+    --above-koko: calc(var(--floor) + var(--sprite) * 1.1);
+    position: absolute;
+    left: 50%;
+    bottom: var(--above-koko);
+    z-index: 4;
+    width: min(100%, 400px);
+    height: min(200px, calc(100% - var(--above-koko)));   /* never reaches up into the title */
+    transform: translateX(-50%);
+    pointer-events: none;        /* the box is see-through; only the coins catch clicks */
+}
+
+/* each coin: a real button with a 44px tap area around a 28px pixel coin */
+.coin-wrap {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: var(--tap);
+    height: var(--tap);
+    margin: calc(var(--tap) / -2) 0 0 calc(var(--tap) / -2);   /* left/top point at the coin's centre */
+    padding: 0;
+    border: 0;
+    background: none;
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.coin {
+    display: block;
+    width: 28px;
+    height: 28px;
+    background: var(--coin);
+    box-shadow:
+        inset 0 0 0 3px var(--coin-edge),
+        inset 6px 6px 0 rgba(255, 255, 255, 0.55),
+        inset -6px -6px 0 rgba(138, 83, 0, 0.25);
+    clip-path: var(--pixel-circle);
+    animation: spin 1.6s steps(8) infinite;
+}
+.coin-wrap:nth-child(2n) .coin { animation-delay: -0.4s; }
+.coin-wrap:nth-child(3n) .coin { animation-delay: -0.8s; }
+.coin-wrap.collected .coin { animation: pop 0.5s var(--ease-out) forwards; }
+.coin-wrap.collected { cursor: default; }
+
+
+/* =========================================================
+   7. Levels: About (1), Projects (2), Contact (3)
+   ========================================================= */
+main {
+    max-width: var(--page-wide);
+    margin: 0 auto;
+    padding: 0 var(--edge);
+}
+
+section {
+    max-width: var(--page-text);
+    padding-top: var(--space-16);
+    scroll-margin-top: var(--space-4);
+}
 
 h2 {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin: 0 0 22px;
-    font-family: var(--px);
-    font-size: 1.1rem;
+    gap: var(--space-4);
+    margin: 0 0 var(--space-6);
+    font-family: var(--font-pixel);
+    font-size: var(--text-h2);
+    font-weight: 400;
+    line-height: 1.25;
 }
 
+/* the level number: a small green voxel block */
 .badge {
     display: inline-grid;
     place-items: center;
-    width: 34px; height: 34px;
-    background: var(--yellow);
-    border: 3px solid var(--ink);
-    box-shadow: 3px 3px 0 var(--ink);
-    font-size: 0.8rem;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    padding-top: 2px;            /* optical: the pixel digits sit a touch high */
+    background: var(--koko);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-s);
+    box-shadow: var(--step) var(--step) 0 var(--ink);
+    font-size: var(--text-ui);
 }
 
-.panel {
-    padding: 22px 24px;
-    background: #fff;
-    border: 4px solid var(--ink);
-    border-radius: 12px;
-    box-shadow: 6px 6px 0 var(--ink);
+/* Panels and cards are chunky blocks: an ink outline and a stepped "voxel" shadow */
+.panel,
+.card {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-l);
+    box-shadow:
+        var(--step) var(--step) 0 var(--step-1),
+        calc(var(--step) * 2) calc(var(--step) * 2) 0 var(--step-2);
 }
-.panel p:first-child { margin-top: 0; }
-.panel p:last-child  { margin-bottom: 0; }
+
+/* one-line panels are dialog boxes: only as wide as what they say */
+.panel {
+    width: fit-content;
+    max-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    font-size: var(--text-lead);
+}
+.panel p { margin: 0; max-width: 65ch; }
 
 /* ---------- project cards ---------- */
 .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 22px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
 }
 
 .card {
-    --accent: var(--red);
-    padding: 22px;
-    background: #fff;
-    border: 4px solid var(--ink);
-    border-top: 14px solid var(--accent);
-    border-radius: 10px;
-    box-shadow: 6px 6px 0 var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-6);
 }
-.card.red    { --accent: var(--red); }
-.card.blue   { --accent: var(--blue); }
-.card.yellow { --accent: var(--yellow); }
-.card.green  { --accent: var(--green); }
-
-.card:hover { animation: bump 0.4s ease-out; }
 
 .card h3 {
-    margin: 0 0 10px;
-    font-family: var(--px);
-    font-size: 0.8rem;
-    line-height: 1.5;
+    margin: 0;
+    font-family: var(--font-pixel);
+    font-size: var(--text-ui);
+    font-weight: 400;
+    line-height: var(--leading-pixel);
     overflow-wrap: anywhere;
 }
-.card p { margin: 0 0 14px; }
-.card.soon { border-style: dashed; border-top-style: solid; }
+.card p {
+    margin: 0;
+    color: var(--ink-soft);
+}
 
 .tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 0;
-    padding: 0;
+    gap: var(--space-2);
+    margin: auto 0 0;            /* pushes the tags to the bottom of the card */
+    padding: var(--space-1) 0 0;
     list-style: none;
 }
 .tags li {
-    padding: 2px 10px;
-    background: var(--cream);
-    border: 2px solid var(--ink);
-    border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 800;
+    padding: 0 var(--space-2);
+    background: var(--chip);
+    border-radius: var(--r-s);
+    font-size: var(--text-small);
+    font-weight: 700;
+    line-height: 1.75;
 }
 
-/* ---------- footer: a strip of bricks ---------- */
+/* the whole rain.kokogecko.dev card is a link */
+.card-link {
+    color: inherit;
+    text-decoration: none;
+    transition: transform var(--dur-fast) var(--ease-out);
+}
+.card-link h3 { color: var(--accent); }
+.card-link h3::after {
+    content: " ↗";
+    font-family: var(--font-body);
+    font-size: 1.5em;
+    font-weight: 700;
+    line-height: 0;
+}
+.card-link:active { transform: translate(var(--step), var(--step)); }
+@media (hover: hover) {
+    .card-link:hover { transform: translate(-2px, -2px); }
+    .card-link:hover h3 { text-decoration: underline 2px; text-underline-offset: 6px; }
+    .card-link:active { transform: translate(var(--step), var(--step)); }
+}
+
+
+/* =========================================================
+   8. Footer: the ground at the end of the level
+   ========================================================= */
 footer {
-    max-width: none;
-    margin-top: 70px;
-    padding: 28px 20px;
-    text-align: center;
+    position: relative;
+    margin-top: var(--space-24);
+    padding: var(--space-8) var(--space-4);
+    background: var(--earth);
     color: #fff;
-    border-top: 4px solid var(--ink);
-    background-color: var(--brick);
-    background-image:
-        linear-gradient(var(--brick-dark) 3px, transparent 3px),
-        linear-gradient(90deg, var(--brick-dark) 3px, transparent 3px);
-    background-size: 40px 20px;
+    text-align: center;
+    border-top: 16px solid var(--grass);
+    box-shadow: inset 0 var(--step) 0 var(--grass-dark), inset 0 -24px 0 var(--earth-deep);
+}
+/* grass tufts: 16px voxel blocks poking up from the top edge */
+footer::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -24px;
+    height: 8px;
+    background: repeating-linear-gradient(90deg, var(--grass) 0 16px, transparent 16px 48px);
 }
 footer p {
-    display: inline-block;
     margin: 0;
-    padding: 6px 14px;
-    background: var(--ink);
-    font-size: 0.85rem;
+    font-size: var(--text-small);
 }
 
-/* =========================================================
-   Animations (each @keyframes block = one little movie)
-   ========================================================= */
-@keyframes drift  { from { left: -160px; } to { left: 110%; } }
-@keyframes walk   { from { transform: translateX(-140px); } to { transform: translateX(100vw); } }
-@keyframes bob    { 0% { transform: translateY(0); } 100% { transform: translateY(-4px); } }
-@keyframes float  { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-@keyframes spin   { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.15); } }
-@keyframes pop    { 0% { transform: translateY(0) scale(1); opacity: 1; }
-                    100% { transform: translateY(-60px) scale(1.4); opacity: 0; } }
-@keyframes jump   { 0% { transform: translateY(0); } 40% { transform: translateY(-70px); } 100% { transform: translateY(0); } }
-@keyframes bump   { 0% { transform: translateY(0); } 40% { transform: translateY(-14px); } 100% { transform: translateY(-6px); } }
 
-/* people who prefer less motion get a calm page */
+/* =========================================================
+   9. Animations (each @keyframes block = one little movie)
+   Only transform and opacity move, so the browser can animate cheaply.
+   ========================================================= */
+@keyframes bob      { 0% { transform: translateY(0); } 100% { transform: translateY(-4px); } }
+@keyframes jump     { 0% { transform: translateY(0); } 40% { transform: translateY(-72px); } 100% { transform: translateY(0); } }
+@keyframes spin     { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.2); } }
+@keyframes pop      { 0% { transform: translateY(0) scale(1); opacity: 1; }
+                      100% { transform: translateY(-56px) scale(1.3); opacity: 0; } }
+@keyframes got      { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
+@keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { to { opacity: 0; } }
+
+@media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+}
+
+
+/* =========================================================
+   10. Reduced motion: nothing moves; changes are instant or quick fades
+   ========================================================= */
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .coin,
+    .gecko svg,
+    .gecko.jump,
+    .score.got .mini-coin { animation: none; }
+
+    .coin-wrap.collected .coin { animation: fade-out 120ms linear forwards; }
+    .has-3d .grove-canvas { animation: fade-in 120ms linear both; }
+    .has-3d .bubble { transition: opacity 120ms linear; }
+
+    .start,
+    .card-link { transition: none; }
+    .start:hover,
+    .start:active,
+    .card-link:hover,
+    .card-link:active { transform: none; }
 }
+
 
 /* =========================================================
-   Phones
+   11. Wider screens (768px and up): one-row nav, side-by-side hero, 2x2 cards
    ========================================================= */
-@media (max-width: 560px) {
-    nav { justify-content: center; }
-    .hero { padding-top: 50px; min-height: 600px; }
-    .cards { grid-template-columns: 1fr; }
-    .hill.h1 { width: 300px; }
-    .hill.h2 { width: 360px; }
-}
+@media (min-width: 768px) {
+    :root {
+        --edge: var(--space-8);
+        --nav-h: 64px;
+        --text-h2: 1.25rem;
+        --ground-h: 96px;
+        --sprite: 192px;         /* 16 pixels x 12 */
+        --tree-scale: 1.4;
+    }
 
-/* ---------- hero buttons: PRESS START + RAIN side by side ---------- */
-.hero-buttons {
-    display: flex;
-    gap: 16px;
-    justify-content: center;
-    flex-wrap: wrap;            /* stacks on narrow phones */
-    margin-top: 8px;
-}
-.hero .hero-buttons .start { display: inline-block; margin: 0; }
-.rain-btn { background: var(--blue); }
+    .hud {
+        position: sticky;
+        top: 0;
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas: "logo links score";
+        /* the logo lines up with KOKO and the levels below (same edge as the 1280px page) */
+        padding: 0 max(var(--space-6), calc((100% - var(--page-wide)) / 2 + var(--edge) - var(--space-2)));
+    }
+    .nav-links {
+        justify-content: flex-end;
+        gap: var(--space-4);
+        padding-right: var(--space-6);
+    }
 
-/* ---------- whole project card as a link ---------- */
-.card-link {
-    display: block;             /* <a> is inline by default */
-    color: inherit;             /* no link-blue text */
-    text-decoration: none;      /* no underline */
+    /* title and buttons on the left, centred in the height; Koko's stage on the right */
+    .hero-inner {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        grid-template-rows: 1fr auto auto 1fr var(--ground-h);
+        grid-template-areas:
+            ".       stage"
+            "copy    stage"
+            "actions stage"
+            ".       stage"
+            ".       .";
+        column-gap: var(--space-8);
+        padding: var(--space-12) var(--edge) 0;
+    }
+    .hero-copy { text-align: left; }
+    .hero-buttons {
+        align-self: start;
+        justify-content: flex-start;
+        padding: var(--space-8) 0 0;
+    }
+
+    .coins { width: min(100%, 520px); height: min(240px, calc(100% - var(--above-koko))); }
+
+    section { padding-top: var(--space-24); scroll-margin-top: calc(var(--nav-h) + var(--space-4)); }
+
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .panel { padding: var(--space-8); }
 }
-.card-link h3::after { content: " ↗"; }

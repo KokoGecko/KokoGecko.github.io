@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concept A · grove test</title>
+    <style>
+        /* Palette A tokens (same names as the team spec) */
+        :root {
+            --haze: #fff2ec;
+            --peach: #ffd6c4;
+            --rose: #b8325e;
+            --ink: #2a1a20;
+        }
+
+        html, body { margin: 0; height: 100%; }
+
+        body {
+            overflow: hidden;
+            /* the sky: the WebGL canvas is transparent, so this gradient shows through */
+            background: linear-gradient(180deg, var(--haze) 0%, var(--peach) 100%);
+            color: var(--ink);
+            font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        #scene {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* fake title block, only here to check the composition */
+        .title {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 9vh;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .title .kicker {
+            margin: 0 0 8px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--rose);
+        }
+
+        .title h1 {
+            margin: 0;
+            font-size: 72px;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .title .tagline {
+            margin: 12px 0 0;
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        @media (min-aspect-ratio: 1/1) {
+            .title {
+                left: 8vw;
+                right: auto;
+                top: 24vh;
+                text-align: left;
+            }
+            .title h1 { font-size: 112px; }
+        }
+
+        .hud {
+            position: fixed;
+            right: 8px;
+            bottom: 8px;
+            font: 11px/1.4 ui-monospace, monospace;
+            color: rgba(42, 26, 32, 0.6);
+            pointer-events: none;
+        }
+    </style>
+    <script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+</head>
+<body>
+    <canvas id="scene"></canvas>
+
+    <header class="title">
+        <p class="kicker">Physics · code · small bots</p>
+        <h1>KOKO</h1>
+        <p class="tagline">Hi. I'm Koko from Phnom Penh.</p>
+    </header>
+
+    <div class="hud" id="hud"></div>
+
+    <script type="module">
+        import * as THREE from "three";
+        import { createGrove } from "../js/grove-a.js";
+
+        // ---------- 1. Renderer and grove ----------
+        const params = new URLSearchParams(location.search);
+        const capture = params.get("capture") === "1";
+        const reducedMotion = params.has("reduced") || matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const quality = params.get("quality") || (Math.min(innerWidth, innerHeight) < 600 ? "low" : "high");
+
+        const canvas = document.getElementById("scene");
+        const renderer = new THREE.WebGLRenderer({
+            canvas,
+            alpha: true,                       // transparent: the CSS gradient is the sky
+            antialias: true,
+            preserveDrawingBuffer: capture     // lets screenshots read the last frame
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setClearColor(0x000000, 0);
+        renderer.toneMapping = THREE.NoToneMapping;   // palette colours stay exactly as designed
+
+        const grove = createGrove({ renderer, reducedMotion, quality });
+
+        // ---------- 2. Koko: the real model if it exists, else a green box ----------
+        let animator = null;
+        let koko = null;
+
+        async function addKoko() {
+            try {
+                const model = await import("../js/koko-model.js");
+                koko = model.buildKoko({ bow: "round", withCloud: true });
+                grove.kokoSpot.add(koko.root);
+                if (koko.cloud) {
+                    grove.scene.add(koko.cloud.root);
+                    grove.kokoSpot.updateMatrixWorld(true);
+                    koko.cloud.root.position.copy(grove.kokoSpot.localToWorld(koko.anchors.cloudHome.clone()));
+                    koko.cloud.root.scale.copy(grove.kokoSpot.scale);
+                }
+                try {
+                    const anim = await import("../js/koko-anim.js");
+                    animator = anim.createKokoAnimator(koko, { reducedMotion });
+                    if (animator.pose) animator.pose("hero");
+                } catch (error) {
+                    console.info("koko-anim.js not ready yet:", error.message);
+                }
+                return "model";
+            } catch (error) {
+                console.info("koko-model.js not ready, using the placeholder:", error.message);
+                const box = new THREE.Mesh(
+                    new THREE.BoxGeometry(16, 10, 5),
+                    new THREE.MeshStandardMaterial({ color: "#43b047", roughness: 0.5 })
+                );
+                box.position.y = 5;
+                grove.kokoSpot.add(box);
+                return "placeholder";
+            }
+        }
+
+        // ---------- 3. Size, pointer, scroll ----------
+        const input = { pointer: { x: 0, y: 0 }, scroll: 0 };
+
+        function layoutFor(width, height) {
+            return width < height ? { kokoX: 0.5, kokoY: 0.7 } : { kokoX: 0.68, kokoY: 0.62 };
+        }
+
+        function resize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height, false);
+            grove.resize(width, height, layoutFor(width, height));
+        }
+        window.addEventListener("resize", resize);
+        resize();
+
+        window.addEventListener("pointermove", (event) => {
+            input.pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+            input.pointer.y = -((event.clientY / window.innerHeight) * 2 - 1);   // +1 = top
+        });
+
+        // ---------- 4. Render loop (or deterministic capture mode) ----------
+        const hud = document.getElementById("hud");
+        let elapsed = 0;
+
+        function step(dt) {
+            elapsed += dt;
+            grove.update(dt, elapsed, input);
+            if (animator) animator.update(dt, elapsed);
+        }
+
+        function render() {
+            renderer.render(grove.scene, grove.camera);
+            const info = renderer.info.render;
+            return { calls: info.calls, triangles: info.triangles };
+        }
+
+        function report() {
+            const numbers = render();
+            const text = `calls ${numbers.calls} · triangles ${numbers.triangles}`;
+            console.log(`[scene-a] ${text}`, grove.stats());
+            hud.textContent = text;
+            return numbers;
+        }
+
+        const ready = addKoko().then((kind) => {
+            console.log(`[scene-a] koko = ${kind}, quality = ${quality}`);
+            return kind;
+        });
+
+        if (capture) {
+            window.__scene = {
+                ready,
+                step,
+                render: report,
+                setPointer(x, y) {
+                    input.pointer.x = x;
+                    input.pointer.y = y;
+                },
+                setScroll(value) {
+                    input.scroll = value;
+                },
+                burst() {
+                    grove.burstPetals(grove.kokoSpot.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 1, 0)));
+                },
+                grove,
+                renderer
+            };
+        } else {
+            let last = performance.now();
+            let running = true;
+            let frames = 0;
+
+            function frame(now) {
+                if (!running) return;
+                const dt = (now - last) / 1000;
+                last = now;
+                step(dt);
+                if (frames++ === 30) report();
+                else render();
+                requestAnimationFrame(frame);
+            }
+
+            // pause when the tab is hidden
+            document.addEventListener("visibilitychange", () => {
+                running = !document.hidden;
+                if (running) {
+                    last = performance.now();
+                    requestAnimationFrame(frame);
+                }
+            });
+            ready.then(() => requestAnimationFrame(frame));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koko turntable</title>
+    <style>
+        /* A soft pink "studio sweep": light in the middle, a little deeper at the edges. */
+        html, body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse 70% 60% at 50% 58%, #fff3f5 0%, #fbe1e7 55%, #f2c6d1 100%);
+            font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+        .label {
+            position: fixed;
+            left: 16px;
+            bottom: 14px;
+            color: #2a1a20;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.75;
+        }
+    </style>
+    <script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+</head>
+<body>
+    <div class="label" id="label"></div>
+
+    <script type="module">
+        import * as THREE from "three";
+        import { buildKoko } from "../js/koko-model.js";
+
+        // ---------- 1. Read the URL options ----------
+        // ?bow=round|ribbon  &angle=side|threequarter|front|top  &spin=1
+        // extras for testing: &cloud=0  &label=0  &ortho=1  &fill=0.7  &pose=test
+        const params = new URLSearchParams(location.search);
+        const options = {
+            bow: params.get("bow") === "ribbon" ? "ribbon" : "round",
+            angle: params.get("angle") || "threequarter",
+            spin: params.get("spin") === "1",
+            cloud: params.get("cloud") !== "0",
+            label: params.get("label") !== "0",
+            ortho: params.get("ortho") === "1",
+            fill: Number(params.get("fill")) || 0.72,
+            pose: params.get("pose") || ""
+        };
+
+        // camera direction for each angle: azimuth (degrees from the side view towards Koko's
+        // nose) and elevation (degrees above the ground)
+        const ANGLES = {
+            side: { azimuth: 0, elevation: 6 },
+            threequarter: { azimuth: 38, elevation: 20 },
+            front: { azimuth: 90, elevation: 8 },
+            top: { azimuth: 0, elevation: 84 }
+        };
+
+        // ---------- 2. Renderer, scene, lights ----------
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.NeutralToneMapping;
+        document.body.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        scene.background = null;               // transparent: the CSS gradient shows through
+
+        // soft fill from the whole sky (pinkish white above, warm rose bounce from below)
+        scene.add(new THREE.HemisphereLight("#ffffff", "#f6d9e1", 1.5));
+        // warm key light: high, in front and to the right, so it lights Koko's face
+        const key = new THREE.DirectionalLight("#fff4ea", 3.2);
+        key.position.set(9, 16, 12);
+        scene.add(key);
+        // a faint cool-pink rim from behind to lift the silhouette off the backdrop
+        const rim = new THREE.DirectionalLight("#ffd9e6", 0.9);
+        rim.position.set(-10, 8, -12);
+        scene.add(rim);
+
+        // ---------- 3. Koko on a little turntable ----------
+        const koko = buildKoko({ bow: options.bow, withCloud: options.cloud });
+        const stage = new THREE.Group();       // everything that spins together
+        stage.add(koko.root);
+        if (koko.cloud) {
+            // the cloud is not a child of Koko (the animator moves it); park it at its home spot
+            koko.cloud.root.position.copy(koko.anchors.cloudHome);
+            stage.add(koko.cloud.root);
+        }
+        stage.add(makeContactShadow(koko));
+        scene.add(stage);
+        if (options.pose === "test") poseForRigTest(koko.rig);
+
+        // ---------- 4. Soft contact shadow, painted on a canvas ----------
+        // A wide soft ellipse under the body plus a small darker dot under each foot.
+        function makeContactShadow(k) {
+            const box = new THREE.Box3().setFromObject(k.root);
+            const pad = 3;
+            const minX = box.min.x - pad;
+            const maxX = box.max.x + pad;
+            const minZ = box.min.z - pad;
+            const maxZ = box.max.z + pad;
+            const w = maxX - minX;
+            const d = maxZ - minZ;
+
+            const canvas = document.createElement("canvas");
+            canvas.width = 256;
+            canvas.height = Math.round(256 * d / w);
+            const ctx = canvas.getContext("2d");
+            const toPx = (x, z) => [(x - minX) / w * canvas.width, (z - minZ) / d * canvas.height];
+
+            drawBlob(ctx, toPx(0, 0), canvas.width * 0.42, canvas.height * 0.36, 0.30);
+            k.root.updateMatrixWorld(true);
+            for (const leg of Object.values(k.rig.legs)) {
+                const foot = new THREE.Box3().setFromObject(leg).getCenter(new THREE.Vector3());
+                drawBlob(ctx, toPx(foot.x, foot.z), canvas.width * 0.07, canvas.width * 0.07, 0.35);
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.colorSpace = THREE.SRGBColorSpace;
+            const plane = new THREE.Mesh(
+                new THREE.PlaneGeometry(w, d),
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
+            );
+            plane.rotation.x = -Math.PI / 2;
+            plane.position.set((minX + maxX) / 2, 0.01, (minZ + maxZ) / 2);
+            plane.renderOrder = -1;
+            return plane;
+        }
+
+        function drawBlob(ctx, [cx, cy], rx, ry, alpha) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.scale(1, ry / rx);
+            const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+            g.addColorStop(0, `rgba(122, 38, 70, ${alpha})`);
+            g.addColorStop(0.5, `rgba(122, 38, 70, ${alpha * 0.45})`);
+            g.addColorStop(1, "rgba(122, 38, 70, 0)");
+            ctx.fillStyle = g;
+            ctx.fillRect(-rx, -rx, rx * 2, rx * 2);
+            ctx.restore();
+        }
+
+        // ---------- 5. A pose that bends every joint (to check the pivots) ----------
+        function poseForRigTest(rig) {
+            rig.head.rotation.set(0, 0.35, 0.25);
+            rig.eyes.r.userData.pupil.position.x += 0.3;
+            rig.eyes.r.userData.pupil.position.y += 0.3;
+            rig.lids.l.visible = true;
+            rig.lids.l.scale.y = 1;
+            rig.lids.r.visible = true;
+            rig.lids.r.scale.y = 0.5;
+            rig.tongue.visible = true;
+            rig.tongue.scale.x = 1;
+            rig.tail[0].rotation.y = 0.3;
+            rig.tail[1].rotation.y = 0.4;
+            rig.tail[2].rotation.z = 0.6;
+            rig.legs.fr.rotation.z = 0.5;
+            rig.legs.br.rotation.z = -0.5;
+            rig.bowLoops.l.rotation.z = 0.3;
+            rig.bowLoops.r.rotation.z = -0.3;
+        }
+
+        // ---------- 6. Camera framing ----------
+        let camera;
+
+        function frameCamera() {
+            const aspect = window.innerWidth / window.innerHeight;
+            const view = ANGLES[options.angle] || ANGLES.threequarter;
+            const az = THREE.MathUtils.degToRad(view.azimuth);
+            const el = THREE.MathUtils.degToRad(view.elevation);
+            const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
+
+            // fit the model's bounding sphere into the view
+            stage.updateMatrixWorld(true);
+            const box = new THREE.Box3();
+            box.expandByObject(koko.root);
+            if (koko.cloud) box.expandByObject(koko.cloud.root);
+            const sphere = box.getBoundingSphere(new THREE.Sphere());
+            const fov = 22;
+            if (options.ortho) {
+                const half = sphere.radius / options.fill;
+                camera = new THREE.OrthographicCamera(-half * aspect, half * aspect, half, -half, 0.1, 500);
+            } else {
+                camera = new THREE.PerspectiveCamera(fov, aspect, 0.5, 500);
+            }
+            const fitHeight = sphere.radius / options.fill;
+            const fitWidth = fitHeight / Math.min(aspect, 1);
+            const distance = fitWidth / Math.tan(THREE.MathUtils.degToRad(fov / 2));
+            camera.position.copy(sphere.center).addScaledVector(dir, distance);
+            if (view.elevation > 80) camera.up.set(0, 0, -1);
+            camera.lookAt(sphere.center);
+        }
+
+        // ---------- 7. Render (once, or spinning) ----------
+        const label = document.getElementById("label");
+        const s = koko.stats;
+        label.textContent = `KOKO · ${options.bow} bow · ${s.voxels} voxels · ${s.triangles.toLocaleString("en")} tris · ${s.meshes} meshes`;
+        label.hidden = !options.label;
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+
+        frameCamera();
+        render();
+        window.__koko = koko;
+        window.__renderer = renderer;
+        window.__ready = true;
+
+        window.addEventListener("resize", () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            frameCamera();
+            render();
+        });
+
+        if (options.spin) {
+            const clock = new THREE.Clock();
+            renderer.setAnimationLoop(() => {
+                if (document.hidden) return;       // no work while the tab is hidden
+                stage.rotation.y += Math.min(clock.getDelta(), 0.1) * 0.6;
+                render();
+            });
+        }
+    </script>
+</body>
+</html>

@@ -5,25 +5,21 @@
 // load, an error while drawing) we stop, and the pixel Koko simply stays.
 //
 // Who does what:
-//   js/grove-a.js / js/grove-b.js  build the scene, camera and lights   (createGrove)
+//   js/grove-b.js                  builds the island, camera and lights  (createGrove)
 //   js/koko-model.js               builds the voxel Koko                 (buildKoko)
 //   js/koko-anim.js                moves Koko: idle, hop, look around…   (createKokoAnimator)
 //   this file                      renderer, frame loop, pointer/scroll input, page buttons
 
 // ---------- 1. Settings ----------
 const params = new URLSearchParams(location.search);
-const concept = params.get("concept") === "b" ? "b" : "a";   // which grove to load
 const captureMode = params.get("capture") === "1";           // screenshots: no loop, step by hand
 
 const MAX_DT = 0.1;              // never advance more than 0.1 s in one frame (after a tab switch, etc.)
 const POINTER_EASE = 4;          // how quickly the parallax follows the pointer (bigger = snappier)
-const RAIN_COOLDOWN_MS = 2500;
-const INTRO_MAX_MS = 9000;       // show the "Hi." bubble after this long even if the intro never says it's done   // the RAIN button can make it rain at most this often
+const RAIN_COOLDOWN_MS = 2500;   // the RAIN button can make it rain at most this often
+let introMax = 7;                // seconds of animation: show "Hi." by then even if the intro never says it's done
 const LOOK_DISTANCE = 0.4;       // the "look plane" sits 40% of the way from Koko to the camera
 const BUBBLE_TAIL = { x: 10, y: 12 };   // where the bubble's tail tip is, from its bottom-left corner (px)
-
-// Concept B's opening: weather goes 0 (sun) → 1 (rain) → 0 over these times (seconds)
-const MONSOON = { rainStart: 1.0, rainFull: 2.5, sunStart: 6.0, sunFull: 7.5 };
 
 const html = document.documentElement;
 const hero = document.querySelector(".hero");
@@ -34,8 +30,6 @@ const bubble = document.getElementById("bubble");
 const kokoHit = document.getElementById("koko-hit");
 const rainButton = document.querySelector(".rain-btn");
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-html.dataset.concept = concept;
 
 // Capture mode: screenshot scripts wait for window.__koko.ready, then drive frames themselves.
 let resolveReady;
@@ -67,7 +61,7 @@ async function loadModules() {
         import("three"),
         import("./koko-model.js"),
         import("./koko-anim.js"),
-        concept === "b" ? import("./grove-b.js") : import("./grove-a.js")
+        import("./grove-b.js")
     ]);
     return { THREE, model, anim, groveModule };
 }
@@ -140,7 +134,7 @@ function buildWorld({ THREE, model, anim, groveModule }) {
         quality: pickQuality()
     });
 
-    world.koko = model.buildKoko({ bow: concept === "b" ? "ribbon" : "round" });
+    world.koko = model.buildKoko({ bow: "ribbon" });
 
     // Measure Koko once, standing still, before placing him: this box is in his own (root) space.
     world.koko.root.updateMatrixWorld(true);
@@ -152,11 +146,21 @@ function buildWorld({ THREE, model, anim, groveModule }) {
     }
 
     world.animator = anim.createKokoAnimator(world.koko, { reducedMotion: view.reducedMotion });
+
+    // The monsoon story: the animator says when the rain starts and stops, the island makes the weather.
+    // (setWeather eases the change itself, so a plain 1 or 0 is enough.)
+    world.animator.on("rain-start", () => world.grove.setWeather(1));
+    world.animator.on("rain-stop", () => world.grove.setWeather(0));
+    world.animator.on("intro-done", () => world.grove.setWeather(0));   // in case the intro was cut short
+
+    // The animator publishes its timings; give the intro half a second more before the safety net.
+    const timing = anim.KOKO_TIMING && anim.KOKO_TIMING.introMonsoon;
+    if (timing && timing.duration) introMax = timing.duration + 0.5;
 }
 
 // ---------- 6. Layout: where is the stage, how big is the hero? ----------
-// The CSS decides where Koko stands (the bottom-centre of .stage). We tell the grove, so the 3D
-// Koko lands in the same place as the pixel one would.
+// The CSS decides where Koko stands (the pixel sprite's spot in .stage). We tell the grove, so the
+// 3D Koko lands in the same place as the pixel one would.
 function measureLayout() {
     const heroBox = hero.getBoundingClientRect();
     const stageBox = stage.getBoundingClientRect();
@@ -315,8 +319,8 @@ function placeOverlays() {
 // ---------- 9. Page events: Koko, coins, the RAIN button ----------
 function play(name, opts) {
     if (!world.animator || world.failed) return;
+    if (name === "intro-monsoon") opts = Object.assign(monsoonOptions(), opts);
     world.animator.play(name, opts);
-    if (name === "intro-monsoon") startMonsoon();
     if (view.reducedMotion) renderStill();          // no loop: show the new pose right away
 }
 
@@ -358,41 +362,34 @@ function listenToPage() {
 }
 
 // ---------- 10. The opening scene (once per page load) ----------
-let monsoonStart = -1;       // the moment (in world.elapsed seconds) the rain episode began
-
-function startMonsoon() {
-    if (concept !== "b" || view.reducedMotion) return;
-    monsoonStart = world.elapsed;
+// "intro-monsoon": the sky turns, Koko scurries under the big leaf, then shakes off when the sun returns.
+// The animator needs to know where the shelter is, as a point in the world.
+function monsoonOptions() {
+    const props = world.grove.props || {};
+    const shelter = props.shelterPoint || props.shelterSpot;
+    const opts = { leaf: props.leaf };
+    if (shelter) {
+        world.grove.scene.updateMatrixWorld(true);
+        // shelterPoint may be a Vector3 already, or an Object3D we ask for its world position
+        opts.shelterPoint = shelter.isObject3D
+            ? shelter.getWorldPosition(new world.THREE.Vector3())
+            : shelter.clone();
+    }
+    return opts;
 }
 
-// smoothstep: eases a 0..1 ramp so it starts and ends gently
-function ramp(t, from, to) {
-    const x = clamp((t - from) / (to - from), 0, 1);
-    return x * x * (3 - 2 * x);
-}
-
-function updateWeather() {
-    if (monsoonStart < 0) return;
-    const t = world.elapsed - monsoonStart;
-    const weather = ramp(t, MONSOON.rainStart, MONSOON.rainFull) * (1 - ramp(t, MONSOON.sunStart, MONSOON.sunFull));
-    world.grove.setWeather(weather);
-    if (t > MONSOON.sunFull) monsoonStart = -1;    // the episode is over: back to sun
+function showBubble() {
+    html.classList.remove("intro-playing");
 }
 
 function playIntro() {
     if (view.reducedMotion || captureMode) return;
 
-    // "Hi." waits until Koko has finished his entrance (or INTRO_MAX_MS, whichever comes first)
+    // "Hi." waits until Koko has finished his entrance (or introMax seconds, see step())
     html.classList.add("intro-playing");
-    const showBubble = () => html.classList.remove("intro-playing");
-    if (typeof world.animator.on === "function") world.animator.on("intro-done", showBubble);
-    setTimeout(showBubble, INTRO_MAX_MS);
+    world.animator.on("intro-done", showBubble);
 
-    if (concept === "b") {
-        play("intro-monsoon", { leaf: world.grove.props && world.grove.props.leaf });
-    } else {
-        play("intro-wake");
-    }
+    play("intro-monsoon");
 }
 
 // ---------- 11. The frame loop ----------
@@ -403,8 +400,8 @@ let lastTime = 0;
 function step(dt) {
     dt = clamp(dt, 0, MAX_DT);
     world.elapsed += dt;
+    if (world.elapsed > introMax) showBubble();       // safety net, in animation time (not wall-clock)
     updateInput(dt);
-    updateWeather();
     world.animator.update(dt, world.elapsed);
     world.grove.update(dt, world.elapsed, input);
 }
@@ -469,10 +466,7 @@ function applyReducedMotion(on) {
     view.reducedMotion = on;
     world.animator.setReducedMotion(on);
     world.grove.setReducedMotion(on);
-    if (on) {
-        monsoonStart = -1;
-        world.grove.setWeather(0);
-    }
+    if (on) world.grove.setWeather(0, { immediate: true });   // no storm in a still picture
     updateLoop();
     renderStill();
 }
@@ -493,7 +487,8 @@ function exposeCaptureApi() {
             pointerMoved = true;
         },
         play(name, opts) { play(name, opts); },
-        pose(name) { world.animator.pose(name); }
+        // a still pose, e.g. pose("hero") or pose("idle", 1.5) = the idle loop at 1.5 s
+        pose(name, t) { world.animator.pose(name, t); }
     });
 }
 

@@ -333,11 +333,13 @@ const TREES = [
     }
 ];
 
-const LANTERN_POS = [-13, 9.5];         // [x, z] on the front-left rim (height is looked up)
-const LEAF_STEM_POS = [-15, 0, -1];      // the big leaf's stem base, on the left rim
+const LANTERN_POS = [13, -5];           // [x, z] right side, by the stream (height is looked up)
+const LEAF_STEM_POS = [-16, 7];          // [x, z] the big leaf's stem base, front-left
 const LEAF_YAW = Math.PI;                // turn the blade (built along -x) so it reaches along +x
-const HERO_POS = [5, 0, 8];              // Koko's hero spot (front, centre-right)
-const SHELTER_POS = [-6, 0, 2.5];        // under the leaf blade
+const HERO_POS = [4, 0, 8];              // Koko's hero spot (front, centre)
+// The animator walks Koko straight along his own x axis (at most 6 voxels) to shelter,
+// so the shelter is 6 voxels behind the hero spot, under the middle of the leaf blade.
+const SHELTER_POS = [-2, 0, 8];
 
 const STEPPING_STONES = [
     [11.0, 1.4], [13.3, 2.4], [15.6, 1.6]
@@ -345,8 +347,8 @@ const STEPPING_STONES = [
 
 // Flowers: [x, z]; the ground height is looked up automatically.
 const FLOWERS = [
-    [-9.5, 12.5], [-5.5, 14.5], [-16.5, 5.5], [12.5, -1.5], [16.5, 0.5], [15.5, -6.5],
-    [-0.5, -7.5], [-3.5, -6.5], [11.5, 12.5], [7.5, 14.5], [-11.5, 7.5], [-16.5, -5.5]
+    [-8.5, 13.5], [-4.5, 14.5], [-13.5, 12.5], [12.5, -1.5], [16.5, 0.5], [16.5, -7.5],
+    [-0.5, -7.5], [-3.5, -6.5], [11.5, 12.5], [7.5, 14.5], [-15.5, 1.5], [-12.5, -2.5]
 ];
 
 
@@ -438,7 +440,7 @@ function canopyShade(x, z) {
     }
     // the leaf blade's middle, on the ground: 9 voxels from the stem along the turned blade
     const leafX = LEAF_STEM_POS[0] - 9 * Math.cos(LEAF_YAW);
-    const leafZ = LEAF_STEM_POS[2] + 9 * Math.sin(LEAF_YAW);
+    const leafZ = LEAF_STEM_POS[1] + 9 * Math.sin(LEAF_YAW);
     const leafD2 = ((x - leafX) / 8) ** 2 + ((z - leafZ) / 5) ** 2;
     shade *= 1 - 0.2 * Math.exp(-leafD2 * 1.8);
     return shade;
@@ -800,11 +802,12 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
     const scene = new THREE.Scene();
     scene.background = null;                      // transparent: the CSS backdrop shows through
 
-    // 11a. Studio lighting: warm key from the upper left, soft sky/floor fill,
-    //      a gentle right fill and a back rim so the silhouette separates from the backdrop.
-    const hemi = new THREE.HemisphereLight("#fff4f1", "#f0c2cb", 1.9);
-    const key = new THREE.DirectionalLight("#fff0e0", 1.75);
-    key.position.set(-30, 55, 35);
+    // 11a. Studio lighting: a warm, slightly low key from the upper left (late-afternoon
+    //      sun), soft sky/floor fill, a gentle right fill and a back rim so the silhouette
+    //      separates from the backdrop.
+    const hemi = new THREE.HemisphereLight("#fff3ea", "#f0c2cb", 1.9);
+    const key = new THREE.DirectionalLight("#ffe2bf", 1.9);
+    key.position.set(-42, 44, 30);
     const fill = new THREE.DirectionalLight("#ffe6ec", 0.55);
     fill.position.set(45, 12, 20);
     const rim = new THREE.DirectionalLight("#fff6f0", 0.6);
@@ -857,7 +860,7 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
 
     // 11f. The big leaf.
     const leaf = buildLeaf(random, landMaterial);
-    leaf.position.set(LEAF_STEM_POS[0], LEAF_STEM_POS[1], LEAF_STEM_POS[2]);
+    leaf.position.set(LEAF_STEM_POS[0], groundHeightAt(data, ...LEAF_STEM_POS) ?? 0, LEAF_STEM_POS[1]);
     leaf.rotation.y = LEAF_YAW;
     island.add(leaf);
 
@@ -866,13 +869,13 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
         [0, "rgba(255,255,255,0.55)"], [0.45, "rgba(255,255,255,0.28)"], [1, "rgba(255,255,255,0)"]
     ]);
     const walkPath = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-6, 0, 7.6),
         new THREE.Vector3(SHELTER_POS[0], 0, SHELTER_POS[2]),
-        new THREE.Vector3(-0.5, 0, 5.5),
         new THREE.Vector3(HERO_POS[0], 0, HERO_POS[2]),
-        new THREE.Vector3(9, 0, 9.5)
+        new THREE.Vector3(9, 0, 8.8)
     ]);
     const homeU = nearestU(walkPath, new THREE.Vector3(...HERO_POS));
-    const shelterU = 0;
+    const shelterU = nearestU(walkPath, new THREE.Vector3(...SHELTER_POS));
 
     const kokoSpot = new THREE.Group();
     kokoSpot.name = "kokoSpot";
@@ -909,12 +912,44 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
     petals.ground = ground;
     rain.ground = ground;
 
+    // the rain also stops on top of the big leaf, so Koko stays dry underneath
+    const leafRoofAt = (x, z) => {
+        const dx = x - leaf.position.x;
+        const dz = z - leaf.position.z;
+        // turn the point into the leaf's own space (undo the leaf's yaw)
+        const lx = dx * Math.cos(LEAF_YAW) - dz * Math.sin(LEAF_YAW);
+        const lz = dx * Math.sin(LEAF_YAW) + dz * Math.cos(LEAF_YAW);
+        const t = (-lx - 2) / LEAF_LENGTH;
+        if (t < 0 || t > 1 || Math.abs(lz) > LEAF_HALF_WIDTH * leafWidth(t)) return null;
+        return leaf.position.y + LEAF_HEIGHT - 1;
+    };
+    rain.ground = (x, z) => leafRoofAt(x, z) ?? ground(x, z);
+
     const stormCloud = buildStormCloud(random, landMaterial);
     stormCloud.visible = false;
     island.add(stormCloud);
 
+    // 11k. Warmth: a soft golden sun glow behind the island, upper left. It is far
+    //      behind the island, so the island hides it where they overlap.
+    const sunTexture = makeRadialTexture([
+        [0, "rgba(255, 236, 196, 0.55)"], [0.35, "rgba(255, 206, 120, 0.22)"], [1, "rgba(255, 197, 61, 0)"]
+    ]);
+    const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: sunTexture, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
+    }));
+    sunGlow.position.set(-33, 4, -27);
+    sunGlow.scale.setScalar(78);
+    sunGlow.raycast = () => {};                  // decoration only: never catches clicks
+    scene.add(sunGlow);
+
     // 11j. Camera: narrow field of view from high up = almost isometric, like a product shot.
     const camera = new THREE.PerspectiveCamera(22, 1, 10, 1000);
+    scene.add(camera);                           // so the foreground blossoms (its children) render
+
+    // 11l. "Depth blur at the edges": a few big, pre-blurred blossoms close to the lens,
+    //      near the frame corners. They hang on the camera, so they stay in the corners,
+    //      and drift against the pointer a little (a different parallax depth).
+    const foreground = createForegroundBlossoms(camera);
     const view = {
         azimuth: 32 * DEG,           // turned so we see Koko's side and a bit of the face
         elevation: 25 * DEG,
@@ -930,7 +965,8 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
     // value = what is on screen now; target = what was asked for. main.js ramps the
     // target smoothly itself; a sudden jump (0 -> 1) still eases over about 1.3 s here.
     const weather = { target: 0, value: 0, lastValue: 0, leaving: false, cloudX: 0 };
-    const CLOUD_HOME = new THREE.Vector3(1.5, 21, 1.5);
+    // high enough that, on a phone, the cloud never covers Koko's face or bow
+    const CLOUD_HOME = new THREE.Vector3(3, 24, 0);
 
     function placeCamera() {
         const az = view.azimuth + view.orbitX;
@@ -951,12 +987,12 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
 
         // How many pixels one island unit should cover: fit the width on phones,
         // the height on wide screens (whichever is tighter wins).
-        const byWidth = (width * 0.95) / 40;
+        const byWidth = (width * 0.9) / 40;
         const byHeight = (height * 0.74) / 58;
         const pixelsPerUnit = Math.min(byWidth, byHeight);
         const visibleHeight = height / pixelsPerUnit;
         view.distance = visibleHeight / (2 * Math.tan((camera.fov * DEG) / 2));
-        camera.near = Math.max(1, view.distance - 120);
+        camera.near = Math.max(1, view.distance * 0.2);   // close enough for the foreground blossoms
         camera.far = view.distance + 160;
 
         // Find where Koko's middle lands on screen with a centred camera...
@@ -977,6 +1013,7 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
         view.orbitX = saved.x;
         view.orbitY = saved.y;
         placeCamera();
+        foreground.place(view.distance * 0.35);
     }
 
     // ---------- weather ----------
@@ -1012,8 +1049,10 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
         rim.intensity = LIGHT_BASE.rim * (1 - 0.6 * gloom);
         fill.intensity = LIGHT_BASE.fill * (1 - 0.3 * gloom);
         hemi.intensity = LIGHT_BASE.hemi * (1 - 0.4 * gloom);
-        // the lantern feels brighter in the gloom: its halo grows (a transform, not a colour)
+        // the lantern feels brighter in the gloom: its halo grows (a transform, not a colour),
+        // and the warm sun glow shrinks away behind the island while the cloud is over it
         halo.scale.setScalar(7 + 3 * gloom);
+        sunGlow.scale.setScalar(78 * (1 - 0.65 * gloom));
 
         rain.amount = reduced ? 0 : smooth01((weather.value - 0.3) / 0.7);
     }
@@ -1033,6 +1072,7 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
             island.position.y = 0;
             floorShadow.scale.set(44, 30, 1);
             placeCamera();
+            updateShelterPoint();
             return;
         }
 
@@ -1054,6 +1094,15 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
         waterfall.update(dt, elapsed);
         petals.update(dt, elapsed, weather.value);
         rain.update(dt, stormCloud.position);
+        foreground.update(elapsed, p);
+        updateShelterPoint();
+    }
+
+    // The shelter under the leaf, in world space (the island floats, so it is refreshed every frame).
+    const shelterPoint = new THREE.Vector3();
+    function updateShelterPoint() {
+        island.updateMatrixWorld();
+        shelterSpot.getWorldPosition(shelterPoint);
     }
 
     // ---------- reduced motion: static pose, no petals, no rain ----------
@@ -1066,6 +1115,7 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
             island.rotation.y = 0;
             weather.value = weather.target;
             waterfall.update(0, 0);              // frozen in a nice-looking frame
+            foreground.update(0, { x: 0, y: 0 }); // the blur blossoms stay, but hold still
         }
         applyWeather(0);
         rain.update(0, stormCloud.position);
@@ -1104,10 +1154,13 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
         });
         shadowTexture.dispose();
         haloTexture.dispose();
+        sunTexture.dispose();
+        foreground.dispose();
     }
 
     setReducedMotion(reduced);
     resize(390, 844, {});
+    updateShelterPoint();
 
     return {
         scene,
@@ -1126,8 +1179,10 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
             lantern: lanternGlow,
             lanternHalo: halo,
             stormCloud,
-            shelterSpot,
-            shelterU,
+            shelterSpot,                         // Object3D under the leaf (island space)
+            shelterPoint,                        // the same spot as a world-space Vector3 (kept current)
+            shelterU,                            // where the shelter is on walkPath
+            sunGlow,
             waterfall: waterfall.mesh
         },
         stats,
@@ -1408,4 +1463,110 @@ function createRain(maxCount) {
         mesh.instanceMatrix.needsUpdate = true;
     }
     return state;
+}
+
+
+// ---------- 16. Foreground blossoms ("depth blur at the edges") ----------
+// Real depth of field needs post-processing, which is too heavy for phones. Instead we
+// draw a few blossoms on a canvas and blur them there, once, at start-up. Close to the
+// lens and out of focus, they make the island feel like a small object far away.
+const FOREGROUND = [
+    // nx, ny: where on screen (-1..1, y up); size: fraction of the frame height; drift phase
+    { nx: -0.86, ny: -0.88, size: 0.3, kind: "cluster", phase: 0 },
+    { nx: 0.94, ny: -0.7, size: 0.2, kind: "petal", phase: 1.7 },
+    { nx: 0.97, ny: 0.93, size: 0.16, kind: "cluster", phase: 3.1 },
+    { nx: -0.98, ny: -0.28, size: 0.12, kind: "petal", phase: 4.4 }
+];
+
+function makeBlurredBlossomTexture(kind) {
+    const size = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    const blur = 16;
+
+    // ctx.filter blurs everything drawn after it. Some browsers ignore it, so then we use
+    // the classic trick instead: draw the shape off-canvas and keep only its blurred shadow.
+    ctx.filter = "blur(" + blur + "px)";
+    const canFilter = ctx.filter === "blur(" + blur + "px)";
+    const shift = canFilter ? 0 : size * 2;
+    if (!canFilter) {
+        ctx.shadowBlur = blur * 2;
+        ctx.shadowOffsetX = shift;
+    }
+
+    // angular petals (rotated squares), in the blossom pinks
+    const petals = kind === "cluster"
+        ? [[0.5, 0.5, 0.3, PALETTE.blossom], [0.3, 0.36, 0.24, PALETTE.blossomLight],
+            [0.7, 0.32, 0.22, PALETTE.blossomLight], [0.32, 0.7, 0.2, PALETTE.blossomShade],
+            [0.7, 0.68, 0.24, PALETTE.blossom]]
+        : [[0.5, 0.5, 0.46, PALETTE.blossomLight], [0.6, 0.42, 0.22, PALETTE.blossom]];
+    for (const [x, y, r, hex] of petals) {
+        ctx.save();
+        ctx.translate(x * size - shift, y * size);
+        ctx.rotate(Math.PI / 4 + x * 0.6);
+        ctx.fillStyle = hex;
+        ctx.shadowColor = hex;
+        ctx.fillRect(-r * size * 0.5, -r * size * 0.5, r * size, r * size);
+        ctx.restore();
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+}
+
+function createForegroundBlossoms(camera) {
+    const textures = {
+        cluster: makeBlurredBlossomTexture("cluster"),
+        petal: makeBlurredBlossomTexture("petal")
+    };
+    const sprites = FOREGROUND.map((spec) => {
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: textures[spec.kind],
+            transparent: true,
+            opacity: 0.95,
+            depthTest: false,                // always in front: they are "on the lens"
+            depthWrite: false
+        }));
+        sprite.renderOrder = 20;
+        sprite.raycast = () => {};
+        sprite.userData = { spec, base: new THREE.Vector3(), frame: 1 };
+        camera.add(sprite);
+        return sprite;
+    });
+
+    // Put each blossom at its screen corner, `depth` units in front of the camera.
+    // projectionMatrixInverse turns a screen point back into a direction from the camera,
+    // which also respects setViewOffset (the off-centre view).
+    function place(depth) {
+        const frame = 2 * depth * Math.tan((camera.fov * DEG) / 2);   // frame height at that depth
+        for (const sprite of sprites) {
+            const { spec, base } = sprite.userData;
+            base.set(spec.nx, spec.ny, 0.5).applyMatrix4(camera.projectionMatrixInverse);
+            base.multiplyScalar(-depth / base.z);
+            sprite.userData.frame = frame;
+            sprite.position.copy(base);
+            sprite.scale.setScalar(spec.size * frame);
+        }
+    }
+
+    // A slow drift, and a nudge against the pointer: near things move more than far things.
+    function update(elapsed, pointer) {
+        for (const sprite of sprites) {
+            const { spec, base, frame } = sprite.userData;
+            const drift = Math.sin((elapsed * TAU) / 8 + spec.phase) * 0.006 * frame;
+            sprite.position.set(
+                base.x - pointer.x * 0.025 * frame,
+                base.y - pointer.y * 0.02 * frame + drift,
+                base.z);
+        }
+    }
+
+    function dispose() {
+        textures.cluster.dispose();
+        textures.petal.dispose();
+    }
+
+    return { place, update, dispose, sprites };
 }

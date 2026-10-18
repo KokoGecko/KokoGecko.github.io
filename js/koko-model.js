@@ -47,8 +47,9 @@ const EXTRA_COLOURS = {
     drop: "#5aa9ff"
 };
 
-// Which rig part owns each sprite pixel: h = head, b = body, t = tail (built by buildTail).
-// Legs: F = front-right, f = front-left, R = rear-right, r = rear-left.
+// Which rig part owns each sprite pixel: h = head, b = body, 0 / 1 / 2 = tail segments t0 / t1 / t2.
+// The tail is the sprite's raised curl: it leaves the back, arches up over the hips and hooks
+// down behind them. Legs: F = front-right, f = front-left, R = rear-right, r = rear-left.
 // UPPERCASE = Koko's right side (+Z, near the camera), lowercase = left side (-Z).
 // The sprite draws the near legs on the outside and the far legs tucked in between, so the
 // diagonal pairs (front-right + rear-left, front-left + rear-right) look like a mid-step trot.
@@ -56,11 +57,11 @@ const PART_MAP = [
     "..........hhhhh.",
     ".........hhhhhhh",
     ".........hhhhhhh",
-    "...bb....hhhhhhh",
-    "..bbbb.bbhhhhhh.",
-    ".tbbbbbbbbbbbbb.",
-    "ttbbbbbbbbbbbb..",
-    ".tbbbbbbbbbbbb..",
+    "...00....hhhhhhh",
+    "..1000.bbhhhhhh.",
+    ".11bbbbbbbbbbbb.",
+    "22bbbbbbbbbbbb..",
+    ".2bbbbbbbbbbbb..",
     "..RR.r....ff.F..",
     "..RR.rr...ff.FF."
 ];
@@ -68,13 +69,14 @@ const PART_MAP = [
 // How thick Koko is at each pixel. The digit is the "half depth" h: the pixel is pushed out
 // into a row of 2h + 1 voxels, from z = -h to z = +h (0 = 1 voxel, 1 = 3 voxels, 2 = 5 voxels).
 // Edges are thinner than the middle, which rounds Koko off like a vinyl toy.
+// ("t" = tail pixel: the tail's thickness comes from TAIL below.)
 const DEPTH_MAP = [
     "..........12221.",
     ".........2333332",
     ".........2333332",
-    "...11....2333332",
-    "..1221.12222222.",
-    ".t1222222222222.",
+    "...tt....2333332",
+    "..tttt.12222222.",
+    ".tt222222222222.",
     "tt122222222222..",
     ".t122222222222..",
     "................",
@@ -83,7 +85,7 @@ const DEPTH_MAP = [
 
 // A few dark spots on top of the back, as [sprite x, sprite row, z]. Only "inside" voxels
 // (not the side shell) are used, so the side view stays identical to the sprite.
-const BACK_SPOTS = [[3, 3, 0], [7, 4, 0], [12, 0, 0]];
+const BACK_SPOTS = [[7, 4, 0], [12, 0, 0]];
 
 // ---------- 2. Where things are (pivots) ----------
 // A voxel in the "main grid" at cell (x, y, z) fills the unit box that starts at
@@ -97,7 +99,6 @@ const MAIN_ORIGIN = new THREE.Vector3(-8, 0, -0.5);
 const PIVOTS = {
     body: new THREE.Vector3(0, 4, 0),       // middle of the torso
     head: new THREE.Vector3(2.5, 5, 0),     // the neck: back-bottom of the head
-    tail: new THREE.Vector3(-6, 3.5, 0),    // where the tail leaves the body
     mouth: new THREE.Vector3(7.7, 6.5, 0)   // just inside the front of the snout
 };
 
@@ -358,32 +359,41 @@ function buildLegVoxels() {
 }
 
 // ---------- 7. Tail ----------
-// Three chunky segments that get thinner (3x3, then 2x2, then 1x1 voxels), each one a child of
-// the one before, so the animator can sway (rotation.y) and curl (rotation.z) them like a chain.
-const TAIL_SEGMENTS = [
-    { size: 3, length: 1 },
-    { size: 2, length: 1 },
-    { size: 1, length: 1 }
+// Three segments (0, 1, 2 in PART_MAP), each thinner than the last: 3, then 2, then 1 voxel
+// deep, with dark bands on top like a leopard gecko. Each one is a child of the one before, so the animator can sway (rotation.y) and curl
+// (rotation.z) them like a chain. Each pivot is the joint with the previous piece.
+const TAIL = [
+    { depth: 3, pivot: new THREE.Vector3(-2.5, 5.5, 0), spots: [[3, 3], [5, 4]] }, // t0: root, banded
+    { depth: 2, pivot: new THREE.Vector3(-5, 5.5, 0), spots: [] },         // t1: the arch
+    { depth: 1, pivot: new THREE.Vector3(-6.5, 4, 0), spots: [] }          // t2: the hooked tip
 ];
 
-function buildTailSegmentVoxels(size, length, index) {
+function isTailPixel(x, row) {
+    return row >= 0 && row < 10 && x >= 0 && x < 16 && "012".includes(PART_MAP[row][x]);
+}
+
+// Voxels of one tail segment. z runs 0 .. depth-1; the segment's grid is centred on z = 0.
+function buildTailSegmentVoxels(index) {
+    const { depth, spots } = TAIL[index];
     const voxels = new Map();
-    for (let x = 0; x < length; x++) {
-        for (let y = 0; y < size; y++) {
-            for (let z = 0; z < size; z++) {
-                const isBottomMiddle = y === 0 && size === 3 && z === 1;
-                const isSpot = index === 1 && y === size - 1 && z === 0;
-                voxels.set(keyOf(x, y, z), isBottomMiddle ? "L" : isSpot ? "D" : "G");
-            }
+    forEachPixel(PART_MAP, (part, x, row) => {
+        if (part !== String(index)) return;
+        for (let z = 0; z < depth; z++) {
+            const outer = z === 0 || z === depth - 1;
+            let colour = KOKO_SPRITE[row][x];
+            if (!outer && spots.some(([sx, sr]) => sx === x && sr === row)) colour = "D";
+            else if (!outer && !isTailPixel(x, row + 1) && !isBodyPixel(x, row + 1)) colour = "L";
+            voxels.set(keyOf(x, 9 - row, z), colour);
         }
-    }
+    });
     return voxels;
 }
 
 // ---------- 8. The bow ----------
 // Drawn like the sprite: a little front view of the bow, top row first.
 // M = main pink, S = shade, H = highlight, K = knot, T = ribbon tail.
-// Voxels left of the knot column belong to one loop, right of it to the other loop.
+// Voxels left of the knot column belong to one loop, right of it to the other loop (a ribbon
+// tail belongs to the loop above it, so they flutter together and never come apart).
 // The bow is then turned to face the three-quarter camera and tilted, and that turn is baked
 // into the geometry, so every bow Group still rests at rotation 0 for the animator.
 const BOW_STYLES = {
@@ -397,12 +407,13 @@ const BOW_STYLES = {
         roll: -10       // degrees: a cheeky tilt
     },
     ribbon: {
+        // flat and angular: wide wings that rise to sharp tips, ribbon tails under them
         map: [
             "HM...MH",
-            ".MSKSM.",
-            "T..K..T"
+            "MMSKSMM",
+            ".T.K.T."
         ],
-        yaw: 30,
+        yaw: 26,
         roll: -8
     }
 };
@@ -435,7 +446,7 @@ function buildBowVoxels(style) {
             const key = keyOf(x, y, 0);
             const hex = BOW_COLOURS[ch];
             all.set(key, hex);
-            if (ch === "K" || ch === "T") knot.set(key, hex);
+            if (ch === "K") knot.set(key, hex);
             else if (x > 0) loopL.set(key, hex);      // +x in bow space = front loop (Koko's left)
             else loopR.set(key, hex);                 // -x in bow space = back loop (Koko's right)
             if (ch === "K") knotTop = Math.max(knotTop, y + 1);
@@ -448,9 +459,9 @@ function buildBowVoxels(style) {
 // Three overlapping balls of voxels, cut flat underneath: white on top, soft grey-blue below.
 // Ball centres are measured from the bottom of the cloud.
 const CLOUD_BALLS = [
-    { x: -2.3, y: 0.9, z: 0, r: 1.6 },
-    { x: 0.1, y: 1.4, z: 0, r: 2.1 },
-    { x: 2.4, y: 0.8, z: 0, r: 1.5 }
+    { x: -2.5, y: 1.1, z: 0, r: 1.6 },
+    { x: 0.0, y: 1.6, z: 0, r: 2.1 },
+    { x: 2.4, y: 1.0, z: 0, r: 1.5 }
 ];
 
 const CLOUD_DROPS = [
@@ -583,18 +594,15 @@ function buildLegs(materials, legData, isSolidMain) {
 
 function buildTail(materials, voxelSets) {
     const chain = [];
-    let parentPivot = PIVOTS.body;
-    let pivot = PIVOTS.tail.clone();
-    TAIL_SEGMENTS.forEach((seg, i) => {
-        const voxels = buildTailSegmentVoxels(seg.size, seg.length, i);
+    TAIL.forEach((segment, i) => {
+        const voxels = buildTailSegmentVoxels(i);
         voxelSets.push(voxels);
-        // centred on the tail axis, reaching back (-X) from the pivot
-        const offset = new THREE.Vector3(-seg.length, -seg.size / 2, -seg.size / 2);
-        const part = makePart("tail-" + i, pivot, parentPivot, meshVoxels(voxels, offset), materials.body);
-        if (chain.length) chain[chain.length - 1].add(part);
+        const gridOrigin = new THREE.Vector3(MAIN_ORIGIN.x, MAIN_ORIGIN.y, -segment.depth / 2);
+        const parentPivot = i === 0 ? PIVOTS.body : TAIL[i - 1].pivot;
+        const part = makePart("tail-" + i, segment.pivot, parentPivot,
+            meshVoxels(voxels, gridOrigin.sub(segment.pivot)), materials.body);
+        if (i > 0) chain[i - 1].add(part);
         chain.push(part);
-        parentPivot = pivot.clone();
-        pivot = pivot.clone().add(new THREE.Vector3(-seg.length, 0, 0));
     });
     return chain;
 }
@@ -607,7 +615,7 @@ function buildBow(styleName, materials, voxelSets) {
     const turn = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(
         0, THREE.MathUtils.degToRad(style.yaw), THREE.MathUtils.degToRad(style.roll), "YXZ"));
 
-    // bow Group: pivot at the knot base. The knot (and ribbon tails) are its own mesh.
+    // bow Group: pivot at the knot base. The knot is its own mesh; the loops hang off it.
     const gridOrigin = new THREE.Vector3(-0.5, 0, -0.5);
     const knotGeometry = meshVoxels(bowVoxels.knot, gridOrigin, isSolidBow).applyMatrix4(turn);
     const bow = makePart("bow", BOW_SEAT, PIVOTS.head, knotGeometry, materials.body);

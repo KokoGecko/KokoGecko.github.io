@@ -110,7 +110,8 @@ function createRenderer(THREE) {
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     // Tone mapping squeezes very bright light into the colours a screen can show, like a camera.
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    // "Neutral" keeps Koko's greens and the blossom pinks true to the brand colours.
+    renderer.toneMapping = THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 1.0;
     // Phones can have 3x screens; 2x looks the same and costs far less.
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -143,6 +144,7 @@ function buildWorld({ THREE, model, anim, groveModule }) {
     world.grove.kokoSpot.add(world.koko.root);
     if (world.koko.cloud) {
         world.grove.scene.add(world.koko.cloud.root);    // the rain cloud floats free; the animator moves it
+        matchCloudScale();
     }
 
     world.animator = anim.createKokoAnimator(world.koko, { reducedMotion: view.reducedMotion });
@@ -156,6 +158,13 @@ function buildWorld({ THREE, model, anim, groveModule }) {
     // The animator publishes its timings; give the intro half a second more before the safety net.
     const timing = anim.KOKO_TIMING && anim.KOKO_TIMING.introMonsoon;
     if (timing && timing.duration) introMax = timing.duration + 0.5;
+}
+
+// The cloud is not Koko's child, so it does not inherit his size: copy the kokoSpot's world scale onto it.
+function matchCloudScale() {
+    if (!world.koko.cloud) return;
+    world.grove.scene.updateMatrixWorld(true);
+    world.grove.kokoSpot.getWorldScale(world.koko.cloud.root.scale);
 }
 
 // ---------- 6. Layout: where is the stage, how big is the hero? ----------
@@ -186,6 +195,7 @@ function resize() {
     const layout = measureLayout();
     world.renderer.setSize(view.width, view.height, false);   // false: CSS already sizes the canvas
     world.grove.resize(view.width, view.height, layout);
+    matchCloudScale();                // in case the grove changed Koko's size
     measureKokoHit();
     // A resize clears the canvas. If no loop is running (reduced motion, capture), draw once now.
     if (!isLooping()) renderFrame();

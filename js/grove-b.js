@@ -802,16 +802,18 @@ export function createGrove({ renderer, reducedMotion = false, quality = "high" 
     const scene = new THREE.Scene();
     scene.background = null;                      // transparent: the CSS backdrop shows through
 
-    // 11a. Studio lighting: a warm, slightly low key from the upper left (late-afternoon
-    //      sun), soft sky/floor fill, a gentle right fill and a back rim so the silhouette
-    //      separates from the backdrop.
-    const hemi = new THREE.HemisphereLight("#fff3ea", "#f0c2cb", 1.9);
-    const key = new THREE.DirectionalLight("#ffe2bf", 1.9);
-    key.position.set(-42, 44, 30);
-    const fill = new THREE.DirectionalLight("#ffe6ec", 0.55);
-    fill.position.set(45, 12, 20);
-    const rim = new THREE.DirectionalLight("#fff6f0", 0.6);
-    rim.position.set(15, 30, -50);
+    // 11a. Studio lighting. The lights stay near-white so Koko's greens stay clean and
+    //      the eye whites stay white; the pink comes from the backdrop, the blossoms and
+    //      the glow sprites instead. A warm near-white key from the front-right above,
+    //      a near-white sky/floor fill, a soft front-left fill, and a warm rim from the
+    //      back-left (the same side as the golden sun glow: late-afternoon backlight).
+    const hemi = new THREE.HemisphereLight("#ffffff", "#f6d9e1", 1.5);
+    const key = new THREE.DirectionalLight("#fff4ea", 3.0);
+    key.position.set(40, 50, 22);
+    const fill = new THREE.DirectionalLight("#fff8f2", 0.5);
+    fill.position.set(-45, 18, 30);
+    const rim = new THREE.DirectionalLight("#ffe7c7", 1.1);
+    rim.position.set(-40, 30, -45);
     scene.add(hemi, key, fill, rim);
     const LIGHT_BASE = { hemi: hemi.intensity, key: key.intensity, fill: fill.intensity, rim: rim.intensity };
 

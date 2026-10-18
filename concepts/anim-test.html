@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koko animation test</title>
+    <style>
+        :root {
+            --mist: #f7dde1;
+            --mist-deep: #ecc3cb;
+            --rose: #b03a5e;
+            --ink: #1d2a2f;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; background: var(--mist); color: var(--ink); font: 600 15px/1.4 system-ui, sans-serif; }
+        main { max-width: 640px; margin: 0 auto; padding: 16px; }
+        h1 { font-size: 18px; margin: 0 0 4px; }
+        .note { margin: 0 0 12px; font-weight: 500; }
+        #stage { position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--mist); border-radius: 12px; }
+        canvas { display: block; width: 100%; height: 100%; }
+        .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+        button {
+            min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px;
+            background: var(--rose); color: #fff; font: inherit; cursor: pointer;
+        }
+        button.quiet { background: #fff; color: var(--ink); box-shadow: inset 0 0 0 1px var(--mist-deep); }
+        button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+        button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+        button:active { transform: scale(0.97); }
+        @media (prefers-reduced-motion: reduce) { button:active { transform: none; } }
+        #status { margin: 0; font-variant-numeric: tabular-nums; }
+        #log { margin: 4px 0 0; min-height: 1.4em; font-weight: 500; }
+        /* capture mode: just the canvas, filling the viewport */
+        html.capture main { max-width: none; padding: 0; }
+        html.capture h1, html.capture .note, html.capture .controls, html.capture #status, html.capture #log { display: none; }
+        html.capture #stage { width: 100vw; height: 100vh; aspect-ratio: auto; border-radius: 0; }
+    </style>
+    <script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+</head>
+<body>
+    <main>
+        <h1>Koko animation test</h1>
+        <p class="note">Move the pointer over the stage: Koko follows it. Hover or focus RAIN to see the rain reaction.</p>
+        <div id="stage"><canvas id="c" aria-label="Koko the voxel gecko"></canvas></div>
+        <div class="controls">
+            <button data-play="hop">Hop</button>
+            <button data-play="tongue">Tongue</button>
+            <button data-play="rain" id="rain-btn">RAIN ☂</button>
+            <button data-play="collect">Collect</button>
+            <button data-play="shake">Shake</button>
+            <button data-play="sleep">Sleep</button>
+            <button data-play="wake">Wake</button>
+            <button data-play="intro-monsoon">Intro B (monsoon)</button>
+            <button data-play="intro-wake" class="quiet">Intro A (wake)</button>
+            <button id="walk" class="quiet" aria-pressed="false">Walk</button>
+            <button id="follow" class="quiet" aria-pressed="true">Follow pointer</button>
+            <button id="reduced" class="quiet" aria-pressed="false">Reduced motion</button>
+            <button id="hero" class="quiet">Hero pose</button>
+            <button id="reset" class="quiet">Reset</button>
+        </div>
+        <p id="status">Loading…</p>
+        <p id="log" aria-live="polite"></p>
+    </main>
+
+    <script type="module">
+        import * as THREE from "three";
+        import { createKokoAnimator } from "../js/koko-anim.js";
+
+        // ---------- 1. Options from the URL ----------
+        // ?capture=1   deterministic frames: no animation loop, drive it with window.__anim
+        // ?model=stub  use the temporary box stub instead of js/koko-model.js
+        // ?bow=round   bow style (default "ribbon", concept B)
+        // ?view=wide   pull the camera back (to see the monsoon scurry)
+        // ?rm=1        start in reduced motion
+        const params = new URLSearchParams(location.search);
+        const capture = params.get("capture") === "1";
+        const bowStyle = params.get("bow") || "ribbon";
+        const wide = params.get("view") === "wide";
+        const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        let reduced = params.get("rm") === "1" || (!capture && prefersReduced);
+        if (capture) document.documentElement.classList.add("capture");
+
+        const statusEl = document.getElementById("status");
+        const logEl = document.getElementById("log");
+
+        async function loadModel() {
+            if (params.get("model") !== "stub") {
+                try {
+                    const mod = await import("../js/koko-model.js");
+                    return { buildKoko: mod.buildKoko, source: "js/koko-model.js" };
+                } catch (err) {
+                    console.warn("real model failed, using the stub:", err);
+                }
+            }
+            const stub = await import("./anim-stub.js");
+            return { buildKoko: stub.buildKoko, source: "concepts/anim-stub.js (stub)" };
+        }
+
+        // ---------- 2. Scene: plain pink backdrop, warm key light + soft fill ----------
+        const canvas = document.getElementById("c");
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: capture });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        const scene = new THREE.Scene();
+        scene.background = null;
+        const camera = new THREE.PerspectiveCamera(30, 1, 1, 500);
+        const target = wide ? new THREE.Vector3(-4, 7, -2) : new THREE.Vector3(0, 8.5, 0);
+        const distance = wide ? 78 : 50;
+        const az = 20 * Math.PI / 180;
+        const el = 14 * Math.PI / 180;
+        camera.position.set(
+            target.x + Math.sin(az) * Math.cos(el) * distance,
+            target.y + Math.sin(el) * distance,
+            target.z + Math.cos(az) * Math.cos(el) * distance);
+        camera.lookAt(target);
+
+        scene.add(new THREE.HemisphereLight("#fff4ee", "#e9a9b8", 1.6));
+        const key = new THREE.DirectionalLight("#fff1dc", 2.2);
+        key.position.set(-10, 24, 18);
+        scene.add(key);
+
+        // soft blob shadow under Koko (a radial gradient drawn on a canvas)
+        function blobTexture() {
+            const c = document.createElement("canvas");
+            c.width = c.height = 128;
+            const g = c.getContext("2d");
+            const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+            grad.addColorStop(0, "rgba(120,40,70,0.35)");
+            grad.addColorStop(1, "rgba(120,40,70,0)");
+            g.fillStyle = grad;
+            g.fillRect(0, 0, 128, 128);
+            return new THREE.CanvasTexture(c);
+        }
+        const blob = new THREE.Mesh(
+            new THREE.PlaneGeometry(1, 1),
+            new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, depthWrite: false }));
+        blob.rotation.x = -Math.PI / 2;
+        blob.position.y = 0.02;
+        scene.add(blob);
+
+        // a stand-in leaf + shelter spot, placed like grove-b (11 voxels back, 5.5 to the far side)
+        const shelterSpot = new THREE.Object3D();
+        shelterSpot.position.set(-11, 0, -5.5);
+        scene.add(shelterSpot);
+        const leaf = new THREE.Group();
+        const leafMat = new THREE.MeshStandardMaterial({ color: "#43b047", roughness: 0.6 });
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(16, 0.6, 10), leafMat);
+        blade.position.set(shelterSpot.position.x + 1, 14, shelterSpot.position.z - 0.5);
+        const stem = new THREE.Mesh(new THREE.BoxGeometry(0.8, 14, 0.8), leafMat);
+        stem.position.set(shelterSpot.position.x - 7, 7, shelterSpot.position.z - 0.5);
+        leaf.add(blade, stem);
+        leaf.visible = false;
+        scene.add(leaf);
+
+        // a coin marker for "collect"
+        const coin = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 0.5),
+            new THREE.MeshStandardMaterial({ color: "#ffc53d", roughness: 0.4 }));
+        const coinPoint = new THREE.Vector3(13, 11, 3);
+        coin.position.copy(coinPoint);
+        coin.visible = false;
+        scene.add(coin);
+
+        // ---------- 3. Koko + animator ----------
+        const { buildKoko, source } = await loadModel();
+        const koko = buildKoko({ bow: bowStyle, withCloud: true });
+        const kokoSpot = new THREE.Group();          // like a scene's kokoSpot: it owns the world placement
+        scene.add(kokoSpot);
+        kokoSpot.add(koko.root);
+        if (koko.cloud) scene.add(koko.cloud.root);  // the cloud floats free; the animator moves it
+
+        const animator = createKokoAnimator(koko, { reducedMotion: reduced });
+        const events = [];
+        for (const name of ["landed", "tongue-hit", "intro-done", "rain-start", "rain-stop", "shelter-go",
+            "shelter", "shake", "sleep", "wake", "state"]) {
+            animator.on(name, () => {
+                const label = name === "state" ? "state: " + animator.state : name;
+                events.push(label);
+                logEl.textContent = "Event: " + label;
+                if (name === "intro-done") leaf.visible = false;
+            });
+        }
+
+        function playAction(name) {
+            const opts = {};
+            if (name === "collect") {
+                opts.target = coinPoint;
+                coin.visible = true;
+                setTimeout(() => (coin.visible = false), 600);
+            }
+            if (name === "intro-monsoon") {
+                opts.shelter = shelterSpot;
+                opts.onShelter = () => (leaf.visible = true);
+            }
+            if (name === "intro-monsoon" || name === "intro-wake") opts.force = true;
+            return animator.play(name, opts);
+        }
+
+        // ---------- 4. Sizing and drawing ----------
+        function resize() {
+            const box = canvas.parentElement.getBoundingClientRect();
+            const w = Math.max(1, Math.round(box.width));
+            const h = Math.max(1, Math.round(box.height));
+            renderer.setSize(w, h, false);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        }
+        resize();
+        window.addEventListener("resize", resize);
+
+        function render() {
+            const y = koko.root.position.y;
+            const s = 17 / (1 + y * 0.06);
+            blob.scale.set(s, s * 0.55, 1);
+            blob.position.x = koko.root.position.x;
+            blob.position.z = koko.root.position.z;
+            renderer.render(scene, camera);
+        }
+
+        function showStatus() {
+            const info = renderer.info.render;
+            statusEl.textContent = `Model: ${source} · state: ${animator.state} · draw calls ${info.calls} · ` +
+                `${Math.round(info.triangles)} tris${reduced ? " · reduced motion" : ""}`;
+        }
+
+        // ---------- 5. Capture mode: deterministic stepping, no animation loop ----------
+        const stepper = { elapsed: 0 };
+        function step(dt) {
+            stepper.elapsed += dt;
+            animator.update(dt, stepper.elapsed);
+        }
+        function reset() {
+            stepper.elapsed = 0;
+            leaf.visible = false;
+            animator.lookAt(null);
+            animator.pose("idle", 0);
+        }
+
+        window.__anim = {
+            ready: Promise.resolve(true),
+            reset,
+            step,
+            render,
+            play: playAction,
+            pose: (name, t) => animator.pose(name, t),
+            lookAt: (x, y, z) => animator.lookAt(x === null ? null : new THREE.Vector3(x, y, z)),
+            setWalking: (s) => animator.setWalking(s),
+            setReducedMotion: (on) => animator.setReducedMotion(on),
+            get state() { return animator.state; },
+            events,
+            info: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, source, stats: koko.stats }),
+            animator,
+            koko,
+            renderer
+        };
+
+        if (capture) {
+            reset();
+            render();
+            showStatus();
+        } else {
+            // ---------- 6. Interactive mode ----------
+            const pointer = new THREE.Vector2();
+            const ray = new THREE.Raycaster();
+            const lookPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -8);   // a plane in front of Koko
+            const lookPoint = new THREE.Vector3();
+            let follow = true;
+            let walking = false;
+
+            canvas.addEventListener("pointermove", (e) => {
+                if (!follow) return;
+                const r = canvas.getBoundingClientRect();
+                pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+                ray.setFromCamera(pointer, camera);
+                if (ray.ray.intersectPlane(lookPlane, lookPoint)) animator.lookAt(lookPoint);
+            });
+            canvas.addEventListener("pointerleave", () => animator.lookAt(null));
+            canvas.addEventListener("click", () => playAction("hop"));
+
+            document.querySelectorAll("[data-play]").forEach((btn) => {
+                btn.addEventListener("click", () => playAction(btn.dataset.play));
+            });
+            const rainBtn = document.getElementById("rain-btn");
+            rainBtn.addEventListener("pointerenter", () => playAction("rain"));
+            rainBtn.addEventListener("focus", () => playAction("rain"));
+
+            document.getElementById("walk").addEventListener("click", (e) => {
+                walking = !walking;
+                e.currentTarget.setAttribute("aria-pressed", String(walking));
+                animator.setWalking(walking ? 6 : 0);           // on a treadmill: Koko stays in place
+            });
+            document.getElementById("follow").addEventListener("click", (e) => {
+                follow = !follow;
+                e.currentTarget.setAttribute("aria-pressed", String(follow));
+                if (!follow) animator.lookAt(null);
+            });
+            const reducedBtn = document.getElementById("reduced");
+            reducedBtn.setAttribute("aria-pressed", String(reduced));
+            reducedBtn.addEventListener("click", () => {
+                reduced = !reduced;
+                reducedBtn.setAttribute("aria-pressed", String(reduced));
+                animator.setReducedMotion(reduced);
+            });
+            document.getElementById("hero").addEventListener("click", () => animator.pose("hero"));
+            document.getElementById("reset").addEventListener("click", reset);
+
+            // the loop pauses while the tab is hidden; dt is clamped by the animator anyway
+            let last = performance.now();
+            let frame = 0;
+            function tick(now) {
+                const dt = (now - last) / 1000;
+                last = now;
+                step(dt);
+                render();
+                if (++frame % 15 === 0) showStatus();
+                requestAnimationFrame(tick);
+            }
+            document.addEventListener("visibilitychange", () => { last = performance.now(); });
+            if (!reduced) setTimeout(() => playAction("intro-monsoon"), 300);
+            requestAnimationFrame(tick);
+        }
+    </script>
+</body>
+</html>

@@ -37,9 +37,11 @@
 // | Intro "wake" (A)  | 6.0            | drop 0-0.50 easeInQuad (gravity, 18 vox); land squash 0.72;| "landed" @0.50, "tongue-hit" @4.19,          |
 // |                   |                | stretch 1.15-2.30; blinks @2.40 @2.70; petal 2.90; flick   | "intro-done" @6.0                           |
 // |                   |                | 4.07; turn to visitor 4.85-5.45; hand over to look 5.45-6.0 |                                             |
-// | Intro "monsoon"(B)| 6.0            | look up + cloud swells 0-0.6; rain x6; scurry 1.05-1.75;   | "rain-start" @0.30, onShelter() @0.85,       |
-// |                   |                | crouch 1.75-4.1; shake-off 4.1-4.7; trot home 4.9-5.5      | "shelter" @1.75, "rain-stop" @3.40,          |
-// |                   |                | (easeInOutSine for all travel); settle 5.7-6.0             | "shake" @4.10, "intro-done" @6.0             |
+// | Intro "monsoon"(B)| 6.5            | look up + cloud swells 0-0.6 easeOutBack; drips x6;        | "rain-start" @0.30, onShelter() @0.85,       |
+// |  (THE intro)      |                | turn 0.85-1.10, scurry 1.10-2.10 (up to 14 vox), face the  | "shelter" @2.10, "rain-stop" @3.60,          |
+// |                   |                | visitor's side 2.05-2.30, crouch 2.1-4.2, shake-off        | "shake" @4.25, "intro-done" @6.5             |
+// |                   |                | 4.25-4.85, turn 4.85-5.10, trot home 5.10-6.00, turn back  |                                             |
+// |                   |                | 5.95-6.20, settle 6.15-6.5 (travel/turns: easeInOutSine)   |                                             |
 // | Cloud follow      | ~0.8 lag       | critically damped spring k 14                              | the cloud trails Koko's hops and walks      |
 //
 // Why these easings (for a learner): easeOut* starts fast and lands softly — good for reactions, because the
@@ -60,7 +62,10 @@ export const KOKO_TIMING = {
     shake: { duration: 0.6 },
     wake: { duration: 0.7 },
     introWake: { duration: 6.0, dropHeight: 18, landAt: 0.5, petalAt: 2.9, flickAt: 4.07, hitAt: 4.19, handover: 5.45 },
-    introMonsoon: { duration: 6.0, rainStart: 0.3, shelterAt: 0.85, arriveAt: 1.75, rainStop: 3.4, shakeAt: 4.1 }
+    introMonsoon: {
+        duration: 6.5, rainStart: 0.3, rainFull: 0.6, shelterAt: 0.85, goAt: 1.1, arriveAt: 2.1,
+        rainStop: 3.6, rainGone: 4.1, shakeAt: 4.25, homeAt: 5.1, backAt: 6.0, maxTravel: 14
+    }
 };
 
 // ---------- 2. Small maths helpers ----------
@@ -154,6 +159,27 @@ function stepSpring(s, target, k, c, dt) {
 
 function critical(k) {
     return 2 * Math.sqrt(k);
+}
+
+// Pick the version of angle `to` (plus or minus whole turns) that Koko turns to from `from`. Small turns take the
+// short way; big turns go round via the visitor's side (yaw -PI/2 = nose toward +Z), so we see his face, never
+// just his back.
+function turnVia(from, to) {
+    let best = to;
+    let bestLen = Infinity;
+    for (let k = -2; k <= 2; k++) {
+        const cand = to + k * TAU;
+        const len = Math.abs(cand - from);
+        if (len < 1e-6) return cand;
+        const lo = Math.min(from, cand);
+        const hi = Math.max(from, cand);
+        const visitor = -Math.PI / 2 + Math.ceil((lo + Math.PI / 2) / TAU) * TAU;   // first "face the visitor" yaw >= lo
+        if ((len <= Math.PI / 2 || visitor <= hi) && len < bestLen) {
+            best = cand;
+            bestLen = len;
+        }
+    }
+    return best;
 }
 
 function resetSpring(s, x = 0) {
@@ -764,52 +790,70 @@ export function createKokoAnimator(koko, { reducedMotion = false } = {}) {
     function runIntroMonsoon(sh, t, a) {
         const T = KOKO_TIMING.introMonsoon;
         sh.idleBlink = 0;
-        sh.lookW = easeInOutSine(seg(t, 5.6, T.duration));
+        sh.lookW = easeInOutSine(seg(t, T.backAt, T.duration));
         // 1. look up: the cloud swells and the rain starts
         sh.headPitch += 0.4 * bump(t, 0, 0.35, 0.55, 0.75);
         sh.pupilY += 0.25 * bump(t, 0, 0.15, 0.55, 0.7);
-        sh.cloudPuff = 1 + 0.35 * (t < 0.6 ? easeOutBack(t / 0.6) : 1 - easeInOutSine(seg(t, T.rainStop, T.rainStop + 0.5)));
+        sh.cloudPuff = 1 + 0.35 * (t < 0.6 ? easeOutBack(t / 0.6) : 1 - easeInOutSine(seg(t, T.rainStop, T.rainGone)));
         sh.dripRate = 1 + 5 * (t < T.rainStop
-            ? easeInOutSine(seg(t, T.rainStart, T.rainStart + 0.3))
+            ? easeInOutSine(seg(t, T.rainStart, T.rainFull))
             : 1 - easeInOutSine(seg(t, T.rainStop, T.rainStop + 0.4)));
         // 2. a drop lands on Koko: flinch and blink
         const flinch = bump(t, 0.55, 0.6, 0.62, 0.8);
         sh.headPitch -= 0.18 * flinch;
         sh.squash *= 1 - 0.05 * flinch;
         let lid = Math.max(blink(t, 0.56), 0.3 * bump(t, 0.6, 0.7, 0.85, 0.95));
-        // 3. glance toward the shelter, then scurry there (turning round first if it is behind)
-        const dx = a.dx;
-        sh.headYaw += (dx < 0 ? -0.5 : 0) * bump(t, 0.65, 0.8, 0.9, 1.05);
-        sh.headPitch -= (dx > 0 ? 0.08 : 0) * bump(t, 0.65, 0.8, 0.9, 1.05);
+        // 3. glance toward the shelter (head first), turn, scurry there, then turn to show his side again
+        sh.headYaw += a.glance * bump(t, 0.65, 0.8, 0.95, 1.1);
+        const settleTurn = T.arriveAt - 0.05;
         let yaw;
-        if (t < 1.05) yaw = lerp(0, a.headingOut, easeInOutSine(seg(t, T.shelterAt, 1.05)));
-        else if (t < 4.7) yaw = a.headingOut;
-        else if (t < 4.9) yaw = lerp(a.headingOut, a.headingBack, easeInOutSine(seg(t, 4.7, 4.9)));
-        else if (t < 5.5) yaw = a.headingBack;
-        else yaw = lerp(a.headingBack, 0, easeInOutSine(seg(t, 5.5, 5.7)));
+        if (t < T.goAt) yaw = lerp(0, a.yawOut, easeInOutSine(seg(t, T.shelterAt, T.goAt)));
+        else if (t < settleTurn) yaw = a.yawOut;
+        else if (t < T.shakeAt + 0.6) yaw = lerp(a.yawOut, a.yawFace, easeInOutSine(seg(t, settleTurn, T.arriveAt + 0.2)));
+        else if (t < T.homeAt) yaw = lerp(a.yawFace, a.yawBack, easeInOutSine(seg(t, T.shakeAt + 0.6, T.homeAt)));
+        else if (t < T.backAt - 0.05) yaw = a.yawBack;
+        else yaw = lerp(a.yawBack, a.yawEnd, easeInOutSine(seg(t, T.backAt - 0.05, T.backAt + 0.2)));
         sh.rootYaw = yaw;
-        const goOut = easeInOutSine(seg(t, 1.05, T.arriveAt));
-        const goHome = easeInOutSine(seg(t, 4.9, 5.5));
-        sh.rootX = dx * (goOut - goHome);
+        const goOut = easeInOutSine(seg(t, T.goAt, T.arriveAt));
+        const goHome = easeInOutSine(seg(t, T.homeAt, T.backAt));
+        sh.rootX = a.dx * (goOut - goHome);
+        sh.rootZ = a.dz * (goOut - goHome);
         // the walk cycle's phase is tied to the distance travelled, so the feet never slide
-        addWalk(sh, Math.abs(dx) * goOut / STRIDE, bump(t, 1.0, 1.1, 1.7, 1.8) * a.travel);
-        addWalk(sh, Math.abs(dx) * goHome / STRIDE, bump(t, 4.85, 4.95, 5.45, 5.55) * a.travel);
+        addWalk(sh, a.dist * goOut / STRIDE,
+            bump(t, T.goAt - 0.05, T.goAt + 0.05, T.arriveAt - 0.05, T.arriveAt + 0.05) * a.travel);
+        addWalk(sh, a.dist * goHome / STRIDE,
+            bump(t, T.homeAt - 0.05, T.homeAt + 0.05, T.backAt - 0.05, T.backAt + 0.05) * a.travel);
         // 4. shelter: crouch low, tail tucked, small shivers, peek up at the leaf, then again as the rain stops
-        const crouch = bump(t, T.arriveAt, 2.05, 3.85, 4.1);
+        const crouch = bump(t, T.arriveAt, T.arriveAt + 0.3, 3.95, T.shakeAt - 0.05);
         sh.splay += 0.45 * crouch;
         sh.headPitch -= 0.1 * crouch;
         sh.tailSway0 += 0.12 * crouch;
         sh.tailSway1 += 0.2 * crouch;
         sh.tailSway2 += 0.3 * crouch;
-        sh.bodyRoll += Math.sin(TAU * 9 * t) * 0.02 * bump(t, 2.1, 2.3, 3.3, 3.5);
-        sh.headPitch += 0.22 * bump(t, 2.65, 2.85, 3.0, 3.2) + 0.3 * bump(t, 3.55, 3.75, 3.85, 4.05);
-        sh.pupilY += 0.2 * bump(t, 2.6, 2.75, 3.0, 3.15) + 0.25 * bump(t, 3.5, 3.65, 3.85, 4.0);
-        lid = Math.max(lid, 0.35 * bump(t, 2.0, 2.2, 3.45, 3.6), blink(t, 2.5), blink(t, 3.15));
+        sh.bodyRoll += Math.sin(TAU * 9 * t) * 0.02 * bump(t, 2.4, 2.6, 3.4, 3.6);
+        sh.headPitch += 0.22 * bump(t, 2.85, 3.05, 3.2, 3.4) + 0.3 * bump(t, 3.75, 3.95, 4.0, 4.2);
+        sh.pupilY += 0.2 * bump(t, 2.8, 2.95, 3.2, 3.35) + 0.25 * bump(t, 3.7, 3.85, 4.0, 4.15);
+        lid = Math.max(lid, 0.35 * bump(t, 2.2, 2.4, 3.6, 3.75), blink(t, 2.7), blink(t, 3.3));
         // 5. the sun is back: a full-body shake-off
         addShake(sh, t - T.shakeAt, 0.6, 1);
-        // 6. trot home (above), face the visitor's side again and settle with a small squash
-        sh.squash *= 1 - 0.05 * bump(t, 5.7, 5.76, 5.8, 6.0);
+        // 6. trot home (above), then settle with a small squash
+        sh.squash *= 1 - 0.05 * bump(t, 6.15, 6.21, 6.25, T.duration);
         sh.lid = Math.max(sh.lid, lid);
+    }
+
+    // Where should Koko shelter? opts.shelterPoint (world Vector3) wins; an Object3D works too
+    // (opts.shelter, e.g. grove-b's props.shelterSpot); a leaf Object3D gives the middle of its footprint.
+    function shelterWorld(opts, out) {
+        if (opts.shelterPoint) return out.copy(opts.shelterPoint);
+        const spot = opts.shelter || opts.shelterSpot;
+        if (spot && spot.isObject3D) return spot.getWorldPosition(out);
+        if (opts.leaf && opts.leaf.isObject3D) {
+            const box = new THREE.Box3().setFromObject(opts.leaf);     // once per intro, not per frame
+            box.getCenter(out);
+            out.y = box.min.y;
+            return out;
+        }
+        return null;
     }
 
     function callShelter(a) {
@@ -856,7 +900,7 @@ export function createKokoAnimator(koko, { reducedMotion = false } = {}) {
                 { at: KOKO_TIMING.introMonsoon.arriveAt, emit: "shelter" },
                 { at: KOKO_TIMING.introMonsoon.rainStop, emit: "rain-stop" },
                 { at: KOKO_TIMING.introMonsoon.shakeAt, kick: -3, emit: "shake" },
-                { at: 5.76, kick: -3 }
+                { at: 6.21, kick: -3 }
             ]
         }
     };
@@ -866,7 +910,8 @@ export function createKokoAnimator(koko, { reducedMotion = false } = {}) {
         return {
             def: null, t: 0, next: 0, fade: 0,
             hasTarget: false, targetWorld: new THREE.Vector3(), targetLocal: new THREE.Vector3(),
-            dx: 0, travel: 0, headingOut: 0, headingBack: 0, onShelter: null
+            dx: 0, dz: 0, dist: 0, travel: 0, glance: 0,
+            yawOut: 0, yawFace: 0, yawBack: 0, yawEnd: 0, onShelter: null
         };
     }
     let mainSlot = makeSlot();      // the current body action (hop, rain, intro...)
@@ -882,17 +927,32 @@ export function createKokoAnimator(koko, { reducedMotion = false } = {}) {
         if (slot.hasTarget) slot.targetWorld.copy(opts.target);
         slot.onShelter = null;
         if (def.name === "intro-monsoon") {
+            const T = KOKO_TIMING.introMonsoon;
             let dx = 4;                                  // default: scurry 4 voxels ahead
-            if (opts && opts.shelterPoint) {
+            let dz = 0;
+            if (opts && shelterWorld(opts, tmpB)) {
                 refreshParentInverse();
-                dx = worldToRest(opts.shelterPoint, tmpA).x;
+                worldToRest(tmpB, tmpA);
+                dx = tmpA.x;
+                dz = tmpA.z;
             }
-            dx = clamp(dx, -6, 6);
-            if (Math.abs(dx) < 0.5) dx = 0;
+            let dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist > T.maxTravel) {
+                dx *= T.maxTravel / dist;
+                dz *= T.maxTravel / dist;
+                dist = T.maxTravel;
+            }
+            if (dist < 0.5) dx = dz = dist = 0;
             slot.dx = dx;
-            slot.travel = dx ? 1 : 0;
-            slot.headingOut = dx < 0 ? -Math.PI : 0;     // turning round always goes via the visitor's side
-            slot.headingBack = dx > 0 ? -Math.PI : 0;
+            slot.dz = dz;
+            slot.dist = dist;
+            slot.travel = dist > 0 ? 1 : 0;
+            // headings (yaw): out to the shelter, back to the canonical side there, home, canonical again
+            slot.yawOut = dist > 0 ? turnVia(0, Math.atan2(-dz, dx)) : 0;
+            slot.yawFace = turnVia(slot.yawOut, 0);
+            slot.yawBack = dist > 0 ? turnVia(slot.yawFace, Math.atan2(dz, -dx)) : slot.yawFace;
+            slot.yawEnd = turnVia(slot.yawBack, 0);
+            slot.glance = clamp(slot.yawOut, LOOK.yawMin, LOOK.yawMax) * 0.7;
             slot.onShelter = (opts && opts.onShelter) || null;
         }
     }

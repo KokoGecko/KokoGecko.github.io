@@ -1,6 +1,6 @@
 /* =========================================================
    KokoGecko — style.css
-   1. Design tokens (two colour concepts: A and B)
+   1. Design tokens
    2. Base and buttons
    3. Nav (the game HUD)
    4. Hero (WORLD 1-1)
@@ -22,7 +22,8 @@
     /* type: two families, a short scale */
     --font-pixel: "Press Start 2P", ui-monospace, monospace;   /* headings, buttons, labels */
     --font-body: "Nunito", system-ui, sans-serif;               /* reading text */
-    --text-ui: 0.75rem;          /* 12px  pixel font: nav, buttons, labels, card titles */
+    --text-label: 0.625rem;      /* 10px  pixel font, phone nav only (its smallest size) */
+    --text-ui: 0.75rem;          /* 12px  pixel font: buttons, labels, card titles */
     --text-h2: 1rem;             /* 16px  pixel font: level titles (20px on wide screens) */
     --text-display: clamp(3.5rem, 18vw, 7rem);  /* the big KOKO */
     --text-body: 1rem;           /* 16px  reading text */
@@ -49,7 +50,7 @@
     --page-wide: 1280px;         /* page content never gets wider than this */
     --page-text: 960px;          /* the levels column */
     --edge: var(--space-4);      /* side gutter; wider screens line everything up on one left edge */
-    --nav-h: 96px;               /* two rows on phones (one row on wide screens, see section 11) */
+    --nav-h: 56px;               /* the nav's height (64px on wide screens) */
     --ground-h: 128px;           /* the strip of ground at the bottom of the hero */
     --sprite: 128px;             /* pixel Koko's width: 16 pixels x 8 */
     --tree-scale: 1;             /* fallback trees grow on wide screens */
@@ -68,71 +69,35 @@
     --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* ---------- Concept A: "Wake-up" golden grove (round, soft) ---------- */
-:root,
-:root[data-concept="a"] {
-    --bg: #fff2ec;              /* haze: page background */
+/* ---------- Colours: the "Lantern island" palette ---------- */
+:root {
+    --bg: #f7dde1;              /* mist: page background */
     --surface: #ffffff;         /* panels, cards, bubble */
-    --ink: #2a1a20;             /* text and outlines */
-    --ink-soft: #6a3d4c;        /* card descriptions */
-    --accent: #b8325e;          /* rose: logo, main buttons, the linked card */
+    --ink: #1d2a2f;             /* text and outlines */
+    --ink-soft: #3d5158;        /* card descriptions */
+    --accent: #b03a5e;          /* rose: logo, main buttons, the linked card */
     --on-accent: #ffffff;       /* text on rose */
-    --blossom: #f6a3bf;
-    --blossom-light: #ffd0de;
-    --blossom-shade: #e46f96;
-    --koko: #43b047;            /* leaf: Koko green, the complementary accent */
-    --coin: #ffc53d;            /* gold */
-    --coin-edge: #8a5300;
-    --grass: #7cc35b;
-    --grass-light: #9bd67c;
-    --grass-dark: #3f8f43;
-    --earth: #6b4a3a;           /* bark */
-    --earth-deep: #4f3529;
-
-    --chip: var(--blossom-light);       /* quiet tag chips */
-    --step-1: var(--blossom);           /* the stepped "voxel" shadow under blocks */
-    --step-2: var(--blossom-shade);
-
-    /* the hero sky: warm haze at the top, peach near the horizon, a soft sun upper-left */
-    --hero-bg:
-        radial-gradient(circle at 16% 12%, #fff4d6 0 6%, rgba(255, 244, 214, 0.8) 11%, rgba(255, 244, 214, 0) 34%),
-        linear-gradient(180deg, #fff2ec 0%, #ffe6da 40%, #ffd6c4 72%, #ffd0de 100%);
-
-    /* one radius scale: round and soft */
-    --r-s: 6px;
-    --r-m: 10px;
-    --r-l: 16px;
-}
-
-/* ---------- Concept B: "Monsoon" lantern island (angular, tiered) ---------- */
-:root[data-concept="b"] {
-    --bg: #f7dde1;              /* mist */
-    --surface: #ffffff;
-    --ink: #1d2a2f;
-    --ink-soft: #3d5158;
-    --accent: #b03a5e;
-    --on-accent: #ffffff;
     --blossom: #ee7fa0;
     --blossom-light: #ffc2d3;
     --blossom-shade: #c9567a;
-    --koko: #43b047;
-    --coin: #ffc53d;
+    --mist-deep: #ecc3cb;
+    --koko: #43b047;            /* leaf: Koko green, the complementary accent */
+    --coin: #ffc53d;            /* gold */
     --coin-edge: #8a5300;
     --grass: #6dbb57;
-    --grass-light: #8fd17a;
     --grass-dark: #3f8f43;
     --earth: #8a5a44;           /* soil */
     --earth-deep: #5e3b2e;      /* soil-dark */
 
-    --chip: var(--blossom-light);
-    --step-1: #ecc3cb;          /* mist-deep */
+    --chip: var(--blossom-light);       /* quiet tag chips */
+    --step-1: var(--mist-deep);         /* the stepped "voxel" shadow under blocks */
     --step-2: var(--blossom-shade);
 
-    /* a plain studio backdrop: lighter in the middle, deeper rose at the edges */
+    /* the hero: a plain studio backdrop, lighter in the middle, deeper rose at the edges */
     --hero-bg:
         radial-gradient(ellipse 90% 75% at 50% 45%, #fff3f5 0%, #f7dde1 55%, #ecc3cb 100%);
 
-    /* one radius scale: crisp, nearly square */
+    /* one radius scale: crisp, nearly square, like the voxels */
     --r-s: 2px;
     --r-m: 4px;
     --r-l: 6px;
@@ -230,20 +195,19 @@ p { text-wrap: pretty; }
 
 
 /* =========================================================
-   3. Nav: a game HUD. Phones get two rows, wide screens one.
+   3. Nav: a game HUD in one row. The logo and the coin counter use the pixel
+   font (they are the "game" part); the three links use the body font so they
+   stay readable at 16px and fit on a 375px phone.
    ========================================================= */
 .hud {
     position: relative;
     z-index: 50;
     display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-        "logo  score"
-        "links links";
-    align-content: center;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "logo links score";
     align-items: center;
     min-height: var(--nav-h);
-    padding: 0 var(--space-2);
+    padding: 0 var(--space-1);
     background: var(--bg);
     border-bottom: 2px solid var(--ink);
     font-family: var(--font-pixel);
@@ -256,22 +220,26 @@ p { text-wrap: pretty; }
     display: inline-flex;
     align-items: center;
     min-height: var(--tap);
-    padding: 0 var(--space-2);
     border-radius: var(--r-s);
 }
 
 .logo {
     grid-area: logo;
-    justify-self: start;
+    padding: 0 var(--space-1);
     color: var(--accent);
+    font-size: var(--text-label);
 }
 
 .nav-links {
     grid-area: links;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
 }
 .nav-links a {
+    padding: 0 var(--space-1);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    font-weight: 700;
     text-decoration-thickness: 2px;
     text-underline-offset: 6px;
 }
@@ -285,15 +253,16 @@ p { text-wrap: pretty; }
     align-items: center;
     gap: var(--space-2);
     min-height: var(--tap);
-    padding: 0 var(--space-2);
+    padding: 0 var(--space-1);
+    font-size: var(--text-label);
     font-variant-numeric: tabular-nums;
 }
 .score b { font-weight: 400; }
 
 .mini-coin {
     display: inline-block;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     background: var(--coin);
     box-shadow: inset 0 0 0 2px var(--coin-edge), inset 4px 4px 0 rgba(255, 255, 255, 0.55);
     clip-path: var(--pixel-circle);
@@ -397,92 +366,35 @@ h1 {
 }
 .has-3d .scenery { display: none; }
 
-/* a soft cloud (concept A) */
-.cloud {
-    position: absolute;
-    left: 4%;
-    top: 12%;
-    width: 96px;
-    height: 24px;
-    background: #fff;
-    border-radius: 24px;
-}
-.cloud::before {
-    content: "";
-    position: absolute;
-    left: 20px;
-    top: -18px;
-    width: 40px;
-    height: 40px;
-    background: inherit;
-    border-radius: 50%;
-}
-
-/* A blossom tree: the element is the trunk, ::before the canopy, ::after a lighter puff on top */
+/* A niwaki (cloud-pruned) blossom tree: the element is the trunk,
+   ::before and ::after are two flat, tiered pads of blossom */
 .tree {
     position: absolute;
     bottom: var(--floor);
-    width: 16px;
-    height: 112px;
-    background: var(--earth);
+    width: 12px;
+    height: 80px;
+    background: var(--earth-deep);
+    transform: scale(var(--tree-scale));
+    transform-origin: bottom;
 }
 .tree::before,
 .tree::after {
     content: "";
     position: absolute;
-    border-radius: 50%;
-}
-.tree::before {
-    left: -92px;
-    bottom: 72px;
-    width: 200px;
-    height: 144px;
-    background: var(--blossom);
-    box-shadow: inset 0 -16px 0 var(--blossom-shade);
-}
-.tree::after {
-    left: -44px;
-    bottom: 160px;
-    width: 120px;
-    height: 88px;
-    background: var(--blossom-light);
-}
-.tree { transform: scale(var(--tree-scale)); transform-origin: bottom; }
-.t1 { left: 4%; }
-.t2 { right: -8px; transform: scale(calc(var(--tree-scale) * 1.15)); }
-
-/* the ground: a grass strip under the whole hero, from Koko's feet down */
-.ground {
-    position: absolute;
-    top: 100%;
-    left: -100vw;
-    right: -100vw;
-    height: var(--ground-h);
-    background: var(--grass);
-    box-shadow: inset 0 var(--step) 0 var(--grass-light), inset 0 -40px 0 var(--grass-dark);
-}
-
-/* Concept B: a little floating island with two tiered (niwaki) blossom trees */
-[data-concept="b"] .cloud { display: none; }
-[data-concept="b"] .tree {
-    width: 12px;
-    height: 80px;
-    background: var(--earth-deep);
-}
-[data-concept="b"] .tree::before,
-[data-concept="b"] .tree::after {
     border-radius: var(--r-m);
     background: var(--blossom-shade);
-    box-shadow: inset 0 8px 0 var(--blossom);
+    box-shadow: inset 0 8px 0 var(--blossom);   /* the lit top face */
 }
-[data-concept="b"] .tree::before { left: -54px; bottom: 48px; width: 120px; height: 24px; }
-[data-concept="b"] .tree::after  { left: -30px; bottom: 88px; width: 72px; height: 24px; }
-[data-concept="b"] .t1 { left: calc(50% - var(--sprite) * 1.05); }
-[data-concept="b"] .t2 { left: calc(50% + var(--sprite) * 0.9); right: auto; transform: scale(calc(var(--tree-scale) * 0.8)); }
-[data-concept="b"] .ground {
+.tree::before { left: -54px; bottom: 48px; width: 120px; height: 24px; }
+.tree::after  { left: -30px; bottom: 88px; width: 72px; height: 24px; }
+.t1 { left: calc(50% - var(--sprite) * 1.05); }
+.t2 { left: calc(50% + var(--sprite) * 0.9); transform: scale(calc(var(--tree-scale) * 0.8)); }
+
+/* the floating island under Koko: grass, then two layers of soil */
+.ground {
+    position: absolute;
     top: calc(100% - var(--floor));
     left: 50%;
-    right: auto;
     width: min(calc(var(--sprite) * 2.65), 96%);
     height: 44px;
     transform: translateX(-50%);
@@ -502,10 +414,8 @@ h1 {
 .stage {
     grid-area: stage;
     position: relative;
-    --floor: 0px;                /* how high above the stage bottom Koko stands */
+    --floor: 26%;                /* Koko stands this high above the stage bottom (the island floats) */
 }
-/* the island floats in the middle of the stage, so Koko stands higher */
-[data-concept="b"] .stage { --floor: 26%; }
 
 /* Pixel Koko stands at the bottom-centre of the stage */
 .walker {
@@ -861,16 +771,17 @@ footer p {
     .hud {
         position: sticky;
         top: 0;
-        grid-template-columns: auto 1fr auto;
-        grid-template-areas: "logo links score";
         /* the logo lines up with KOKO and the levels below (same edge as the 1280px page) */
         padding: 0 max(var(--space-6), calc((100% - var(--page-wide)) / 2 + var(--edge) - var(--space-2)));
     }
+    .logo,
+    .score { font-size: var(--text-ui); }
     .nav-links {
         justify-content: flex-end;
         gap: var(--space-4);
         padding-right: var(--space-6);
     }
+    .nav-links a { padding: 0 var(--space-2); }
 
     /* title and buttons on the left, centred in the height; Koko's stage on the right */
     .hero-inner {

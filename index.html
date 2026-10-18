@@ -1,17 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-concept="a">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KokoGecko</title>
     <meta name="description" content="Koko — physics, code, and small useful bots. Phnom Penh.">
-
-    <!-- Pick the colour concept before anything is drawn: ?concept=b switches to concept B.
-         It runs this early so the page never flashes the wrong colours. -->
-    <script>
-        document.documentElement.dataset.concept =
-            new URLSearchParams(location.search).get("concept") === "b" ? "b" : "a";
-    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +45,6 @@
             <div class="stage" id="stage">
                 <!-- Fallback scenery, drawn with CSS. Hidden when the 3D grove is running. -->
                 <div class="scenery" aria-hidden="true">
-                    <div class="cloud"></div>
                     <div class="tree t1"></div>
                     <div class="tree t2"></div>
                     <div class="ground"></div>

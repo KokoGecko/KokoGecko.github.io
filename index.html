@@ -4,123 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KokoGecko</title>
-    <meta name="description" content="Koko — physics, code, and small useful bots. Phnom Penh.">
+    <meta name="description" content="KokoGecko: physics, code, and a BB84 quantum key bench you can try to eavesdrop on.">
+    <meta name="color-scheme" content="light dark">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <nav>
-        <a href="#top" class="logo">KOKOGECKO</a>
-        <div class="nav-right">
-            <a href="#about">about</a>
-            <a href="#projects">projects</a>
-            <a href="#contact">contact</a>
-            <span class="score" title="Click the coins!"><i class="mini-coin"></i> x<b id="coin-count">00</b></span>
-        </div>
-    </nav>
-
-    <header class="hero" id="top">
-        <!-- sky decoration -->
-        <div class="cloud c1"></div>
-        <div class="cloud c2"></div>
-        <div class="cloud c3"></div>
-
-        <!-- collectable coins: click them! -->
-        <button class="coin-wrap" style="left: 12%; top: 38%; --d: 0s" aria-label="coin"><span class="coin"></span></button>
-        <button class="coin-wrap" style="left: 82%; top: 30%; --d: .4s" aria-label="coin"><span class="coin"></span></button>
-        <button class="coin-wrap" style="left: 68%; top: 56%; --d: .8s" aria-label="coin"><span class="coin"></span></button>
-        <button class="coin-wrap" style="left: 28%; top: 62%; --d: 1.2s" aria-label="coin"><span class="coin"></span></button>
-        <button class="coin-wrap" style="left: 92%; top: 62%; --d: .2s" aria-label="coin"><span class="coin"></span></button>
-
-        <div class="hero-text">
-            <p class="prompt">WORLD 1-1</p>
-            <h1>KOKO</h1>
-            <p class="tagline">Hi.</p>
-            <div class="hero-buttons">
-                <a class="start" href="#projects">PRESS START ▶</a>
-                <a class="start rain-btn" href="https://rain.kokogecko.dev">RAIN ☂</a>
-            </div>
-        </div>
-
-        <!-- scenery -->
-        <div class="hill h1"></div>
-        <div class="hill h2"></div>
-        <div class="walker"><div class="gecko" id="gecko" title="Click me!"></div></div>
-        <div class="ground"></div>
+    <header class="top">
+        <a href="#top" class="mark" aria-label="KokoGecko, back to top"><canvas id="wordmark" aria-hidden="true"></canvas></a>
+        <nav aria-label="Sections">
+            <a href="#building">projects</a>
+            <a href="https://github.com/KokoGecko">GitHub</a>
+        </nav>
     </header>
 
-    <main>
-        <section id="about">
-            <h2><span class="badge">1</span> About</h2>
-            <div class="panel">
-                <p>I like geckos.</p>
+    <main id="top">
+        <section class="bench" aria-labelledby="bench-title">
+            <h1 id="bench-title" class="visually-hidden">KokoGecko</h1>
+            <canvas id="bench" tabindex="0"
+                aria-label="A live BB84 bench: Alice sends photons along a fibre to Bob while a qubit precesses on a Bloch sphere. Focus here and use the arrow keys and space to move the gecko and make it jump."></canvas>
+            <div class="controls">
+                <button id="btn-left" type="button" aria-label="Move gecko left">◀</button>
+                <button id="btn-jump" type="button">Jump</button>
+                <button id="btn-right" type="button" aria-label="Move gecko right">▶</button>
+                <button id="btn-reset" type="button" class="quiet">Reset count</button>
             </div>
+            <p id="bench-status" class="status" aria-live="polite"></p>
+            <p class="caption">
+                Alice sends single photons to Bob, each in a random basis. Make the gecko jump into the fibre
+                and it reads them on the way. Every photon it measures in the wrong basis arrives disturbed,
+                so the error rate Bob sees climbs toward 25%. That rise is how quantum key distribution catches an eavesdropper.
+            </p>
+            <p class="hint">Arrow keys or A / D to walk, space to jump, drag the sphere to turn it.</p>
+            
         </section>
 
-        <section id="projects">
-            <h2><span class="badge">2</span> Projects</h2>
-
-            <div class="cards">
-                <article class="card red">
-                    <h3>monsoon_bot</h3>
-                    <p>
-                        A rain-prediction Telegram bot that sends forecasts in Khmer,
-                        using Open-Meteo / ECMWF weather data. Deployed on Railway.
-                    </p>
-                    <ul class="tags">
-                        <li>Python</li><li>Telegram API</li><li>Railway</li>
-                    </ul>
-                </article>
-
-                <article class="card blue">
-                    <h3>GeckoChecker</h3>
-                    <p>
-                        A Telegram bot that reads the timestamps on staff check-in photos
-                        with OCR and compares them to a schedule, flagging late or early arrivals
-                        automatically.
-                    </p>
-                    <ul class="tags">
-                        <li>Python</li><li>OCR</li><li>Excel</li>
-                    </ul>
-                </article>
-
-                <article class="card yellow">
-                    <h3>Cooking Wars</h3>
-                    <p>
-                        An open-world Roblox game I'm building with two friends:
-                        fight bosses, steal their ingredients, and cook.
-                    </p>
-                    <ul class="tags">
-                        <li>Roblox</li><li>Luau</li><li>Game design</li>
-                    </ul>
-                </article>
-
-                <a class="card green card-link" href="https://rain.kokogecko.dev">
-                    <h3>rain.kokogecko.dev</h3>
-                    <p>A private family dashboard for monsoon_bot's rain forecasts, in Khmer and English. Login required.</p>
-                    <ul class="tags">
-                        <li>Flask</li><li>Railway</li><li>Auth</li>
-                    </ul>
-                </a>
-            </div>
+        <section class="tagline" aria-label="stardust">
+            <canvas id="stardust" role="img" aria-label="stardust"></canvas>
         </section>
 
-        <section id="contact">
-            <h2><span class="badge">3</span> Contact</h2>
-            <div class="panel">
-                <p>Find my code on GitHub.</p>
-                <a class="start" href="https://github.com/KokoGecko" target="_blank" rel="noopener">GITHUB ▶</a>
-            </div>
+        <section id="building" class="building" aria-labelledby="building-title">
+            <h2 id="building-title">currently building</h2>
+            <ul class="projects">
+                <li>
+                    <canvas id="loop-trade" aria-hidden="true"></canvas>
+                    <div>
+                        <h3>Trade Gecko</h3>
+                        <p>My own quant trading model and tracker.</p>
+                    </div>
+                </li>
+                <li>
+                    <canvas id="loop-rain" aria-hidden="true"></canvas>
+                    <div>
+                        <h3>Gecko Web</h3>
+                        <p>Rain prediction web app (Project Monsoon).</p>
+                        <a href="https://rain.kokogecko.dev">Open rain.kokogecko.dev</a>
+                    </div>
+                </li>
+                <li>
+                    <canvas id="loop-site" aria-hidden="true"></canvas>
+                    <div>
+                        <h3>kokogecko.dev</h3>
+                        <p>This site: a retro platformer drawn in scanlines.</p>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <section class="stack" aria-labelledby="stack-title">
+            <h2 id="stack-title">stack</h2>
+            <p>Python, C, Linux (Arch), HTML/CSS/JS</p>
         </section>
     </main>
 
     <footer>
-        <p>© 2026 KokoGecko · built by hand, no frameworks</p>
+        <p>Built by hand, no frameworks. Code on <a href="https://github.com/KokoGecko">GitHub</a>.</p>
     </footer>
 
-    <script src="script.js"></script>
+    <script src="scanline.js"></script>
+    <script src="site.js"></script>
 </body>
 </html>

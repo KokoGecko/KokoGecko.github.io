@@ -374,6 +374,27 @@ function loop(id, W, H, drawFrame) {
     });
 })();
 
+// Bellypie: a pixel pie for the team of 3, baked one slice at a time; the newest slice glows gold
+(function () {
+    const CX = 120, CY = 38, R = 32, STEP = 4, SLICE = (2 * Math.PI) / 3;
+    loop("loop-bellypie", 240, 80, (k) => {
+        const rects = [[0, 74, 240, 2]], accent = [];
+        const baked = Math.floor(k / 12) % 5;          // 0..3 slices filled, a beat on the whole pie, then reset
+        for (let y = CY - R; y <= CY + R; y += STEP) {
+            for (let x = CX - R; x <= CX + R; x += STEP) {
+                const dx = x + 1.5 - CX, dy = y + 1.5 - CY, d = Math.hypot(dx, dy);
+                if (d > R) continue;
+                const a = (Math.atan2(dy, dx) + Math.PI / 2 + 2 * Math.PI) % (2 * Math.PI);
+                const s = Math.floor(a / SLICE);
+                const crust = d > R - STEP;
+                if (crust) rects.push([x, y, 3, 3]);                       // the crust is always there
+                else if (s < Math.min(baked, 3)) (s === Math.min(baked, 3) - 1 && baked < 4 ? accent : rects).push([x, y, 3, 3]);
+            }
+        }
+        return { rects, moving: accent, accent };
+    });
+})();
+
 // kokogecko.dev: the gecko walks across and hops a photon
 (function () {
     const ART = ["....GGG.", "...GLKLG", ".GGGGGGG", "GLLLLLG.", ".G.G.G.G"];

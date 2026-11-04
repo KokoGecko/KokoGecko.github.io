@@ -356,6 +356,24 @@ function loop(id, W, H, drawFrame) {
     });
 })();
 
+// Poli Studio: three frogs (the team of 3) hop in turn while a block tower builds up beside them
+(function () {
+    const FROG = ["GG....GG", "G.GGGG.G", "GGGGGGGG", ".GGGGGG.", "G.G..G.G"];
+    const SPOTS = [24, 76, 128];
+    loop("loop-poli", 240, 80, (k) => {
+        const rects = [[0, 74, 240, 2]], accent = [];
+        SPOTS.forEach((sx, i) => {
+            const t = (k - i * 6) % 24, hop = t >= 0 && t < 8 ? Math.round(12 * Math.sin((t / 8) * Math.PI)) : 0;
+            FROG.forEach((row, ry) => [...row].forEach((ch, rx) => {
+                if (ch === "G") rects.push([sx + rx * 4, 54 - hop + ry * 4, 4, 3]);
+            }));
+        });
+        const built = Math.floor(k / 12) % 7;          // 0..6 blocks, then the tower resets
+        for (let b = 0; b < Math.min(built, 5); b++) accent.push([188 + (b % 2) * 4, 62 - b * 12, 24, 10]);
+        return { rects, moving: rects.slice(1), accent };
+    });
+})();
+
 // kokogecko.dev: the gecko walks across and hops a photon
 (function () {
     const ART = ["....GGG.", "...GLKLG", ".GGGGGGG", "GLLLLLG.", ".G.G.G.G"];

@@ -149,6 +149,8 @@ h2 {
 h3 { font-size: 1.25rem; margin: 0; line-height: 1.3; }
 .projects p { margin: 4px 0 0; }
 .projects a { display: inline-block; margin-top: 6px; color: var(--faint); }
+.projects .links { display: flex; gap: 20px; flex-wrap: wrap; }
+.projects .links a { margin-top: 2px; padding: 10px 0; }   /* 44px-ish tap row without visual bulk */
 
 .stack { padding-top: 96px; }
 .stack p { margin: 0; }

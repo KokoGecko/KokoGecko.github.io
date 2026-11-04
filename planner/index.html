@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Koko's Week</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#fff8fa; --ink:#2a1f24; --faint:#7d6b72; --rule:#f0dfe5; --card:#ffffff;
+  --study:#dbe9ff;  --study-i:#2e5aa8;
+  --work:#ffe3cc;   --work-i:#a5521a;
+  --design:#f3e0ff; --design-i:#7a3aa8;
+  --team:#d9f5e1;   --team-i:#25804a;
+  --us:#ffd9e3;     --us-i:#b3264f;
+  --own:#fff2c2;    --own-i:#8a6a00;
+  --rest:#eeeeee;   --rest-i:#666666;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#17121a; --ink:#f3e9ee; --faint:#a8979f; --rule:#33282f; --card:#1f1922;
+    --study:#1d2c45;  --study-i:#9cc0ff;
+    --work:#3d2a1b;   --work-i:#ffb57a;
+    --design:#33223f; --design-i:#d8a9ff;
+    --team:#1b3626;   --team-i:#86e0a6;
+    --us:#43202b;     --us-i:#ff9db8;
+    --own:#3a3317;    --own-i:#f0d36b;
+    --rest:#2a2a2a;   --rest-i:#aaaaaa;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.5 "Atkinson Hyperlegible",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:28px clamp(14px,4vw,40px) 64px}
+h1{font:700 2rem/1.1 "Pixelify Sans",sans-serif;margin:0}
+.sub{color:var(--faint);margin:6px 0 0}
+h2{font:700 1.15rem/1.2 "Pixelify Sans",sans-serif;margin:40px 0 14px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.chip{font-size:.85rem;padding:4px 10px;border-radius:999px;font-weight:700}
+.study{background:var(--study);color:var(--study-i)}
+.work{background:var(--work);color:var(--work-i)}
+.design{background:var(--design);color:var(--design-i)}
+.team{background:var(--team);color:var(--team-i)}
+.us{background:var(--us);color:var(--us-i)}
+.own{background:var(--own);color:var(--own-i)}
+.rest{background:var(--rest);color:var(--rest-i)}
+
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+.day{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.day.today{outline:2px solid var(--us-i);outline-offset:2px}
+.day h3{margin:0 0 2px;font:700 1rem "Pixelify Sans",sans-serif;display:flex;justify-content:space-between;align-items:center}
+.day h3 small{font:700 .7rem "Atkinson Hyperlegible";color:var(--us-i)}
+.block{border-radius:10px;padding:8px 9px;font-size:.85rem;line-height:1.35}
+.block b{display:block;font-size:.72rem;opacity:.85;letter-spacing:.02em}
+.block span{display:block;font-weight:700}
+@media (max-width:900px){.week{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.week{grid-template-columns:1fr}}
+
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.rule{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:12px 14px;font-size:.92rem}
+.rule strong{display:block;margin-bottom:2px}
+
+.areas{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.area{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:14px}
+.area header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.area h4{margin:0;font-size:1rem}
+.area .who{color:var(--faint);font-size:.82rem;margin:0 0 8px}
+.count{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px}
+ul.tasks{list-style:none;margin:0;padding:0}
+ul.tasks li{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-top:1px solid var(--rule)}
+ul.tasks li:first-child{border-top:0}
+ul.tasks input[type=checkbox]{width:18px;height:18px;margin-top:2px;accent-color:var(--us-i);flex:none;cursor:pointer}
+ul.tasks label{flex:1;cursor:pointer;font-size:.92rem}
+ul.tasks li.done label{text-decoration:line-through;color:var(--faint)}
+.del{border:0;background:none;color:var(--faint);cursor:pointer;font-size:1rem;line-height:1;padding:4px 6px;border-radius:6px}
+.del:hover{color:var(--us-i);background:var(--rule)}
+form.add{display:flex;gap:6px;margin-top:8px}
+form.add input{flex:1;min-width:0;font:inherit;font-size:.9rem;padding:7px 10px;border:1px solid var(--rule);border-radius:9px;background:var(--paper);color:var(--ink)}
+form.add button{font:inherit;font-size:.85rem;font-weight:700;padding:7px 12px;border:0;border-radius:9px;cursor:pointer;background:var(--ink);color:var(--paper)}
+:focus-visible{outline:2px solid var(--us-i);outline-offset:2px}
+.foot{color:var(--faint);font-size:.85rem;margin-top:36px}
+.reset{font:inherit;font-size:.85rem;background:none;border:1px solid var(--rule);color:var(--faint);border-radius:9px;padding:6px 12px;cursor:pointer;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Koko's Week 🦎</h1>
+  <p class="sub">Everything in one place: study, work, the two teams, US prep, and your own stuff.</p>
+  <div class="legend" aria-label="Colour key">
+    <span class="chip study">Study (physics + cyber)</span>
+    <span class="chip work">Work: DAKASI + You Heng</span>
+    <span class="chip design">Design: Monsoon</span>
+    <span class="chip team">Team ops: Poli + Bellypie</span>
+    <span class="chip us">US prep</span>
+    <span class="chip own">Own projects</span>
+    <span class="chip rest">Rest</span>
+  </div>
+
+  <h2>The weekly rhythm</h2>
+  <div class="week" id="week"></div>
+
+  <h2>Ground rules</h2>
+  <div class="rules">
+    <div class="rule"><strong>US prep never skips.</strong>It has a hard deadline (Mt. SAC, Spring 2027). Sunday afternoon is sacred, even if it's only 30 minutes.</div>
+    <div class="rule"><strong>Work days are work days.</strong>Tue + Thu go to DAKASI and You Heng. If a work day moves, swap it with a study afternoon, not with rest.</div>
+    <div class="rule"><strong>You manage, they make.</strong>Thailong builds the game, Phiana designs. Your team-ops block is short: check in, note it down, set the next step.</div>
+    <div class="rule"><strong>One own project at a time.</strong>Pick one for Saturday. Park the rest in its list below.</div>
+    <div class="rule"><strong>Keep one rest block.</strong>Saturday evening + Sunday morning are off. Burnout costs more than one free evening.</div>
+  </div>
+
+  <h2>Task lists</h2>
+  <div class="areas" id="areas"></div>
+
+  <p class="foot">Ticks and new tasks save in this browser only. <button class="reset" id="reset" type="button">Reset to starter lists</button></p>
+</div>
+
+<script>
+const WEEK = [
+  ["Mon", [["study","Morning","Classes / study"],["study","Afternoon","Physics + cyber study"],["team","Evening · 45 min","Team ops: check in with Poli + Bellypie"]]],
+  ["Tue", [["work","All day","Work: DAKASI / You Heng"],["work","Focus","You Heng design + POS setup"]]],
+  ["Wed", [["study","Morning","Classes / study"],["design","Afternoon","Monsoon design"],["team","Evening · 45 min","Team ops: update notes, next steps"]]],
+  ["Thu", [["work","All day","Work: DAKASI / You Heng"],["work","Focus","Whatever's due this week"]]],
+  ["Fri", [["study","Morning","Classes / study"],["study","Afternoon","Cyber practice / labs"],["team","Evening · 45 min","Team ops: weekly notes for both teams"]]],
+  ["Sat", [["rest","Morning","Sleep in, free time"],["own","Afternoon","One own project"],["rest","Evening","Off"]]],
+  ["Sun", [["rest","Morning","Off"],["us","Afternoon","US prep: forms, docs, Springboard"],["us","Evening · 20 min","Plan next week, tick this page"]]]
+];
+
+const STARTER = [
+  {id:"us",   cls:"us",     name:"US prep", who:"Mt. SAC · Spring 2027 · Springboard Education", tasks:[
+    "Finish the Mt. SAC application with Springboard",
+    "Make a list of documents still missing",
+    "Ask Springboard for the full timeline (admission → I-20 → visa)"]},
+  {id:"work", cls:"work",   name:"Work: DAKASI + You Heng", who:"About 2 days a week", tasks:[
+    "Keep going on the You Heng design",
+    "Set up the POS system",
+    "DAKASI: list this week's tasks"]},
+  {id:"design", cls:"design", name:"Design: Monsoon", who:"Your own design job", tasks:[
+    "Monsoon design: pick the next screen/piece to finish"]},
+  {id:"poli", cls:"team",   name:"Poli Studio", who:"Roblox · you manage, Thailong builds, with Rith", tasks:[
+    "Weekly check-in with Thailong + Rith, write it down",
+    "Facebook Page: retry after the limit clears (or a friend creates it and adds you)",
+    "Add the Facebook link to Discord + kokogecko.dev"]},
+  {id:"belly", cls:"team",  name:"Bellypie Enterprise", who:"Canva / personal / Claude design · you manage, Phiana designs, with Nita", tasks:[
+    "Weekly check-in with Phiana + Nita, write it down"]},
+  {id:"study", cls:"study", name:"Study", who:"Physics + cyber", tasks:[
+    "Write down this week's assignments and exam dates"]},
+  {id:"own",  cls:"own",    name:"Own projects", who:"One active, the rest parked", tasks:[
+    "Pick ONE project for Saturdays"]}
+];
+
+const KEY = "koko-week-v1";
+let state;
+function fresh(){ return STARTER.map(a => ({...a, tasks:a.tasks.map(t => ({t, done:false}))})); }
+function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); if (Array.isArray(s)) return s; } catch(e){} return fresh(); }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+state = load();
+
+// week grid
+const todayIdx = (new Date().getDay() + 6) % 7;
+document.getElementById("week").innerHTML = WEEK.map(([d, blocks], i) =>
+  `<div class="day${i===todayIdx?" today":""}"><h3>${d}${i===todayIdx?"<small>today</small>":""}</h3>` +
+  blocks.map(([c, when, what]) => `<div class="block ${c}"><b>${when}</b><span>${what}</span></div>`).join("") +
+  `</div>`).join("");
+
+// task areas
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function render(){
+  document.getElementById("areas").innerHTML = state.map((a, ai) => {
+    const left = a.tasks.filter(t => !t.done).length;
+    return `<section class="area" aria-labelledby="h-${a.id}">
+      <header><h4 id="h-${a.id}">${esc(a.name)}</h4><span class="count ${a.cls}">${left} open</span></header>
+      <p class="who">${esc(a.who)}</p>
+      <ul class="tasks">${a.tasks.map((t, ti) => `
+        <li class="${t.done?"done":""}">
+          <input type="checkbox" id="t-${ai}-${ti}" data-a="${ai}" data-t="${ti}" ${t.done?"checked":""}>
+          <label for="t-${ai}-${ti}">${esc(t.t)}</label>
+          <button class="del" type="button" data-a="${ai}" data-t="${ti}" aria-label="Remove task: ${esc(t.t)}">×</button>
+        </li>`).join("")}
+      </ul>
+      <form class="add" data-a="${ai}">
+        <label class="visually-hidden" for="n-${ai}" style="position:absolute;left:-9999px">New task for ${esc(a.name)}</label>
+        <input id="n-${ai}" placeholder="Add a task…" autocomplete="off">
+        <button type="submit">Add</button>
+      </form>
+    </section>`;
+  }).join("");
+}
+render();
+
+const areas = document.getElementById("areas");
+areas.addEventListener("change", e => {
+  if (e.target.type !== "checkbox") return;
+  state[e.target.dataset.a].tasks[e.target.dataset.t].done = e.target.checked;
+  save(); render();
+  document.getElementById(e.target.id)?.focus();
+});
+areas.addEventListener("click", e => {
+  const b = e.target.closest(".del"); if (!b) return;
+  state[b.dataset.a].tasks.splice(+b.dataset.t, 1); save(); render();
+});
+areas.addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target, ai = +f.dataset.a, v = f.querySelector("input").value.trim();
+  if (!v) return;
+  state[ai].tasks.push({t:v, done:false}); save(); render();
+  document.getElementById("n-" + ai).focus();
+});
+document.getElementById("reset").addEventListener("click", () => { state = fresh(); save(); render(); });
+</script>
+</body>
+</html>

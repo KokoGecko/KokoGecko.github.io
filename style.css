@@ -152,6 +152,11 @@ footer {
     font-size: 0.9375rem;
 }
 footer p { margin: 0; }
+footer .credit { display: flex; align-items: flex-end; gap: 12px; }
+.buddy { flex: none; fill: #d97757; margin-bottom: 4px; }      /* Claude Code's own orange, only here */
+.buddy.hop { animation: hop 300ms var(--ease-out); }
+@keyframes hop { 40% { transform: translateY(-6px); } 70% { transform: translateY(1px); } }
+@media (prefers-reduced-motion: reduce) { .buddy.hop { animation: none; } }
 
 @media (max-width: 640px) {
     .tagline { padding: 72px var(--gutter) 64px; }

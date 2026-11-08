@@ -84,3 +84,13 @@
     }, { rootMargin: "200px" });
     slots.forEach((s) => near.observe(s));
 })();
+
+// The Claude Code buddy in the footer hops once when it comes into view, and again when you hover the credit
+(function buddy() {
+    const b = document.querySelector(".buddy");
+    if (!b || !("IntersectionObserver" in window)) return;
+    const hop = () => { b.classList.remove("hop"); void b.getBoundingClientRect(); b.classList.add("hop"); };
+    b.addEventListener("animationend", () => b.classList.remove("hop"));
+    new IntersectionObserver(([e], io) => { if (e.isIntersecting) { hop(); io.disconnect(); } }, { threshold: 1 }).observe(b);
+    b.parentElement.addEventListener("pointerenter", hop);
+})();

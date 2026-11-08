@@ -85,12 +85,23 @@
     slots.forEach((s) => near.observe(s));
 })();
 
-// The Claude Code buddy in the footer hops once when it comes into view, and again when you hover the credit
+// The Claude Code buddy walks the footer strip at 12 fps, like the gecko upstairs: 3 px a step,
+// turns at the ends, stops for a look around now and then. Only transform changes. Still with reduced motion.
 (function buddy() {
-    const b = document.querySelector(".buddy");
-    if (!b || !("IntersectionObserver" in window)) return;
-    const hop = () => { b.classList.remove("hop"); void b.getBoundingClientRect(); b.classList.add("hop"); };
-    b.addEventListener("animationend", () => b.classList.remove("hop"));
-    new IntersectionObserver(([e], io) => { if (e.isIntersecting) { hop(); io.disconnect(); } }, { threshold: 1 }).observe(b);
-    b.parentElement.addEventListener("pointerenter", hop);
+    const b = document.querySelector(".buddy"), strip = document.querySelector(".walk");
+    if (!b || !strip) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let x = 0, dir = 1, rest = 0, k = 0, onScreen = false;
+    new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; }).observe(strip);
+    setInterval(() => {
+        if (!onScreen || document.hidden) return;
+        k++;
+        const max = strip.clientWidth - 33;
+        if (rest > 0) { rest--; b.classList.remove("step"); return; }
+        x += 3 * dir;
+        if (x >= max || x <= 0) { x = Math.max(0, Math.min(max, x)); dir *= -1; rest = 8; }
+        else if (k % 60 === 0) rest = 12;                  // every ~5 s, a short pause
+        b.classList.toggle("step", k % 2 === 0);
+        b.style.transform = `translateX(${x}px)`;
+    }, 1000 / 12);
 })();

@@ -13,7 +13,8 @@
     // The hidden start state only applies once JS has added .motion, so the cards never vanish without JS.
     if (!reduce.matches && "IntersectionObserver" in window) {
         deck.classList.add("motion");
-        carts.forEach((c, i) => c.style.setProperty("--stagger", `${(i % 2) * 60}ms`));   // the right column lands a beat later
+        if (window.matchMedia("(min-width: 768px)").matches)       // two columns: the right one lands a beat later
+            carts.forEach((c, i) => c.style.setProperty("--stagger", `${(i % 2) * 60}ms`));
         const io = new IntersectionObserver((entries) => {
             for (const e of entries) {
                 if (!e.isIntersecting) continue;
@@ -53,6 +54,14 @@
     // A clip plays only without reduced motion; the still is used otherwise. If a file is missing, the canvas stays.
     const slots = deck.querySelectorAll("canvas[data-clip], canvas[data-still]");
     if (!slots.length || !("IntersectionObserver" in window)) return;
+    // Clips only decode while on screen and while the tab is visible
+    const clips = new Map();
+    const sync = (v) => (clips.get(v) && !document.hidden ? v.play().catch(() => {}) : v.pause());
+    const seen = new IntersectionObserver((entries) => {
+        for (const e of entries) { clips.set(e.target, e.isIntersecting); sync(e.target); }
+    });
+    const watch = (v) => { clips.set(v, true); seen.observe(v); };
+    document.addEventListener("visibilitychange", () => clips.forEach((_, v) => sync(v)));
     const swap = (canvas, el) => { el.className = "slot"; el.setAttribute("aria-hidden", "true"); canvas.replaceWith(el); };
     const load = (canvas) => {
         const clip = canvas.dataset.clip, still = canvas.dataset.still;
@@ -60,7 +69,7 @@
             const v = document.createElement("video");
             Object.assign(v, { muted: true, loop: true, playsInline: true, autoplay: true, preload: "metadata" });
             if (still) v.poster = still;
-            v.addEventListener("loadeddata", () => swap(canvas, v), { once: true });
+            v.addEventListener("loadeddata", () => { swap(canvas, v); watch(v); }, { once: true });
             v.src = clip;
         } else if (still) {
             const img = new Image();

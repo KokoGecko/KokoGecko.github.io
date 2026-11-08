@@ -213,7 +213,7 @@ footer p { margin: 0; }
     text-decoration-color: var(--accent);
     text-decoration-thickness: 2px;
 }
-@media (hover: hover) and (pointer: fine) { .cart .go a:hover { color: var(--accent); } }
+@media (hover: hover) and (pointer: fine) { .cart .go a:hover { text-decoration-thickness: 4px; } }
 
 /* status badges: gold is the only accent */
 .badges { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -239,7 +239,8 @@ footer p { margin: 0; }
 .badge.social { border-color: var(--ink); color: var(--ink); }
 
 /* ---------- twinkling pixel stars in the gaps between cartridges ---------- */
-.stars { position: absolute; inset: 64px 0 0; pointer-events: none; }
+.stars { position: absolute; inset: 64px 0 0; pointer-events: none; display: none; }
+@media (min-width: 768px) { .stars { display: block; } }
 .stars i {
     position: absolute;
     left: var(--x); top: var(--y);
@@ -281,4 +282,10 @@ footer p { margin: 0; }
 @media (prefers-reduced-motion: reduce) {
     .stars i { animation: none; }
     .deck.motion .cart { opacity: 1; transform: none; }
+}
+
+/* three nav links + the wordmark on small phones */
+@media (max-width: 440px) {
+    .top { flex-wrap: wrap; row-gap: 4px; }
+    .top nav { gap: 14px; font-size: 0.875rem; }
 }

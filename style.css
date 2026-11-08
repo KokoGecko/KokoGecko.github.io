@@ -12,6 +12,8 @@
     --measure: 960px;
     --gutter: clamp(16px, 5vw, 48px);
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --shell: #ecebe5;      /* cartridge plastic */
+    --shell-faint: #5f5f5d;/* secondary text on the shell, 5.4:1 */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,6 +24,8 @@
         --accent: #d9b45c;
         --ghost: 0.16;
         --rule: #2a2b2e;
+        --shell: #1b1c1f;
+        --shell-faint: #8f8f8c;
     }
 }
 
@@ -123,7 +127,7 @@ canvas { display: block; image-rendering: pixelated; }
 #stardust { width: min(100%, 530px); height: auto; aspect-ratio: 530 / 82; }
 
 /* ---------- sections ---------- */
-.building, .stack {
+.building, .about, .stack {
     max-width: var(--measure);
     margin: 0 auto;
     padding: 0 var(--gutter);
@@ -135,24 +139,9 @@ h2 {
     padding-top: 20px;
     border-top: 1px solid var(--ink);
 }
-.projects { list-style: none; margin: 0; padding: 0; }
-.projects li {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    gap: 32px;
-    align-items: center;
-    padding: 20px 0;
-    border-bottom: 1px solid var(--rule);
-}
-.projects li:last-child { border-bottom: 0; }
-.projects canvas { width: 240px; height: 80px; }
-h3 { font-size: 1.25rem; margin: 0; line-height: 1.3; }
-.projects p { margin: 4px 0 0; }
-.projects a { display: inline-block; margin-top: 6px; color: var(--faint); }
-.projects .links { display: flex; gap: 20px; flex-wrap: wrap; }
-.projects .links a { margin-top: 2px; padding: 10px 0; }   /* 44px-ish tap row without visual bulk */
+h3 { font-size: 1.1875rem; margin: 0; line-height: 1.3; }
 
-.stack { padding-top: 96px; }
+.about, .stack { padding-top: 96px; }
 .stack p { margin: 0; }
 
 footer {
@@ -165,9 +154,131 @@ footer {
 footer p { margin: 0; }
 
 @media (max-width: 640px) {
-    .projects li { grid-template-columns: 1fr; gap: 12px; }
-    .projects canvas { width: 100%; max-width: 240px; }
     .tagline { padding: 72px var(--gutter) 64px; }
     .controls .quiet { margin-left: 0; }
     .controls { flex-wrap: wrap; }
+}
+
+/* =========================================================
+   Project cartridges. One column on phones, two from 768px.
+   Shell = plastic, label = paper sticker, pins = gold contacts.
+   ========================================================= */
+.building { position: relative; }
+.deck { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 24px; position: relative; }
+@media (min-width: 768px) { .deck { grid-template-columns: 1fr 1fr; gap: 28px; } }
+
+.cart {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--shell);
+    padding: 36px 18px 34px;
+    /* the clipped top-right corner of a cartridge */
+    clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+}
+/* grip ridges along the top: scanlines, again */
+.cart::before {
+    content: "";
+    position: absolute;
+    left: 18px; right: 40px; top: 6px; height: 20px;
+    background: repeating-linear-gradient(to bottom, transparent 0 4px, color-mix(in srgb, var(--ink) 22%, transparent) 4px 6px);
+}
+/* gold contact pins along the bottom edge */
+.cart::after {
+    content: "";
+    position: absolute;
+    left: 36px; right: 36px; bottom: 0; height: 12px;
+    background: repeating-linear-gradient(to right, var(--accent) 0 6px, transparent 6px 12px);
+}
+.cart .label {
+    display: grid;
+    gap: 10px;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    padding: 14px;
+}
+.cart canvas { justify-self: center; width: 240px; height: 80px; max-width: 100%; }
+.cart .slot { justify-self: center; width: 240px; max-width: 100%; aspect-ratio: 3 / 1; object-fit: cover; image-rendering: pixelated; }
+.cart h3 { border-top: 2px solid var(--ink); padding-top: 10px; }
+.cart .aka { color: var(--faint); font-weight: 400; font-size: 0.9375rem; white-space: nowrap; }
+.cart p { margin: 0; }
+.cart .problem { margin-top: 14px; max-width: 52ch; }
+.cart .tech { margin-top: 10px; color: var(--shell-faint); font-size: 0.9375rem; }
+.cart .go { display: flex; flex-wrap: wrap; gap: 0 18px; margin-top: 6px; }
+.cart .go a {
+    display: inline-block;
+    padding: 10px 0;                 /* 44px tap row */
+    font-weight: 700;
+    color: var(--ink);
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+}
+@media (hover: hover) and (pointer: fine) { .cart .go a:hover { color: var(--accent); } }
+
+/* status badges: gold is the only accent */
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 6px 8px 5px;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+}
+.badge.live { background: var(--accent); color: var(--paper); }
+.badge.private { border-color: var(--faint); color: var(--faint); }
+.badge.private::before {           /* a 7 px padlock */
+    content: "";
+    display: inline-block;
+    width: 7px; height: 6px;
+    margin-right: 6px;
+    background: currentColor;
+    box-shadow: 1px -3px 0 -1px var(--paper), 1px -3px 0 0 currentColor;
+}
+.badge.soon { border-style: dashed; }
+.badge.social { border-color: var(--ink); color: var(--ink); }
+
+/* ---------- twinkling pixel stars in the gaps between cartridges ---------- */
+.stars { position: absolute; inset: 64px 0 0; pointer-events: none; }
+.stars i {
+    position: absolute;
+    left: var(--x); top: var(--y);
+    width: 4px; height: 4px;
+    background: var(--accent);
+    opacity: 0.25;
+    animation: twinkle 3.6s steps(3, end) var(--d) infinite;
+}
+@keyframes twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.9; } }
+
+/* ---------- motion: slide in, coin bounce, launch burst ---------- */
+.deck.motion .cart { opacity: 0; transform: translateY(16px); }
+.deck.motion .cart.in {
+    opacity: 1;
+    transform: none;
+    transition: opacity 250ms var(--ease-out) var(--stagger, 0ms), transform 250ms var(--ease-out) var(--stagger, 0ms);
+}
+@media (hover: hover) and (pointer: fine) {
+    .deck.motion .cart.in:hover { animation: coin 300ms var(--ease-out); }
+}
+@keyframes coin {
+    0% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+    70% { transform: translateY(1px); }
+    100% { transform: translateY(0); }
+}
+.burst { position: fixed; width: 0; height: 0; pointer-events: none; z-index: 10; }
+.burst i {
+    position: absolute;
+    left: -2px; top: -2px;
+    width: 4px; height: 4px;
+    background: var(--accent);
+    animation: burst 300ms var(--ease-out) forwards;
+}
+@keyframes burst { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+
+.count { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 700; margin-left: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .stars i { animation: none; }
+    .deck.motion .cart { opacity: 1; transform: none; }
 }

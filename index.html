@@ -16,7 +16,8 @@
         <a href="#top" class="mark" aria-label="KokoGecko, back to top"><canvas id="wordmark" aria-hidden="true"></canvas></a>
         <nav aria-label="Sections">
             <a href="#building">projects</a>
-            <a href="https://github.com/KokoGecko">GitHub</a>
+            <a href="#about">about</a>
+            <a href="https://github.com/KokoGecko" aria-label="contact: Koko on GitHub">contact</a>
         </nav>
     </header>
 
@@ -29,7 +30,7 @@
                 <button id="btn-left" type="button" aria-label="Move gecko left">◀</button>
                 <button id="btn-jump" type="button">Jump</button>
                 <button id="btn-right" type="button" aria-label="Move gecko right">▶</button>
-                <button id="btn-reset" type="button" class="quiet">Reset count</button>
+                <button id="btn-reset" type="button" class="quiet">Reset count <span id="reset-n" class="count">0</span></button>
             </div>
             <p id="bench-status" class="status" aria-live="polite"></p>
             <p class="caption">
@@ -46,50 +47,110 @@
         </section>
 
         <section id="building" class="building" aria-labelledby="building-title">
+            <!-- Twinkling pixel stars behind the cartridges (decorative) -->
+            <div class="stars" aria-hidden="true">
+                <i style="--x:4%;--y:3%;--d:0s"></i><i style="--x:47%;--y:1%;--d:1.2s"></i><i style="--x:96%;--y:9%;--d:2.4s"></i>
+                <i style="--x:49%;--y:22%;--d:0.6s"></i><i style="--x:1%;--y:31%;--d:1.8s"></i><i style="--x:98%;--y:38%;--d:3s"></i>
+                <i style="--x:50%;--y:47%;--d:0.3s"></i><i style="--x:2%;--y:58%;--d:2.1s"></i><i style="--x:97%;--y:66%;--d:1.5s"></i>
+                <i style="--x:48%;--y:74%;--d:2.7s"></i><i style="--x:3%;--y:86%;--d:0.9s"></i><i style="--x:95%;--y:95%;--d:3.3s"></i>
+            </div>
             <h2 id="building-title">currently building</h2>
-            <ul class="projects">
-                <li>
-                    <canvas id="loop-trade" aria-hidden="true"></canvas>
-                    <div>
-                        <h3>Trade Gecko</h3>
-                        <p>My own quant trading model and tracker.</p>
+            <!--
+                One cartridge per project. Each label holds a 12 fps scanline loop (site.js).
+                Media slots: add data-clip="media/name.mp4" (a Claude Motion or Seedance export) and
+                data-still="media/name.webp" (a Higgsfield still) to a <canvas>; cards.js swaps them in
+                when the files exist. The canvas stays as the fallback.
+            -->
+            <ul class="deck">
+                <li class="cart">
+                    <div class="label">
+                        <canvas id="loop-rain" aria-hidden="true"></canvas>
+                        <h3>Gecko Web <span class="aka">Project Monsoon</span></h3>
+                        <p class="badges"><span class="badge live">Live</span><span class="badge private">Private repo</span></p>
                     </div>
+                    <p class="problem">A rain prediction bot and web app: blends weather-model forecasts into one hourly rain chance, with a live radar.</p>
+                    <p class="tech"><span class="visually-hidden">Built with </span>Python, Open-Meteo ensembles, Himawari satellite, Railway</p>
+                    <p class="go"><a href="https://rain.kokogecko.dev/preview">See what it does</a><a href="https://rain.kokogecko.dev">Open the app</a></p>
                 </li>
-                <li>
-                    <canvas id="loop-rain" aria-hidden="true"></canvas>
-                    <div>
-                        <h3>Gecko Web</h3>
-                        <p>Rain prediction web app (Project Monsoon).</p>
-                        <a href="https://rain.kokogecko.dev">Open rain.kokogecko.dev</a>
+                <li class="cart">
+                    <div class="label">
+                        <canvas id="loop-trade" aria-hidden="true"></canvas>
+                        <h3>Trade Gecko <span class="aka">Big Gecko</span></h3>
+                        <p class="badges"><span class="badge live">Live, sign-in</span><span class="badge private">Private repo</span></p>
                     </div>
+                    <p class="problem">My trading tracker and quant model: a trade journal with R stats, price alerts and a daily market brief.</p>
+                    <p class="tech"><span class="visually-hidden">Built with </span>Python, SQLite, Web Push, Railway</p>
+                    <p class="go"><a href="https://trade.kokogecko.dev/preview">See what it does</a><a href="https://trade.kokogecko.dev">Open the app</a></p>
                 </li>
-                <li>
-                    <canvas id="loop-poli" aria-hidden="true"></canvas>
-                    <div>
+                <li class="cart">
+                    <div class="label">
+                        <canvas id="loop-profile" aria-hidden="true"></canvas>
+                        <h3>KokoGecko profile README</h3>
+                        <p class="badges"><span class="badge public">Public repo</span></p>
+                    </div>
+                    <p class="problem">My GitHub profile as a physics bench: a BB84 scanline hero with a Bloch sphere, drawn as animated SVG.</p>
+                    <p class="tech"><span class="visually-hidden">Built with </span>Python, SVG</p>
+                    <p class="go"><a href="https://github.com/KokoGecko/KokoGecko">View code on GitHub</a></p>
+                </li>
+                <li class="cart">
+                    <div class="label">
+                        <canvas id="loop-planner" aria-hidden="true"></canvas>
+                        <h3>Koko Planner</h3>
+                        <p class="badges"><span class="badge live">Live, sign-in</span><span class="badge private">Private repo</span></p>
+                    </div>
+                    <p class="problem">A planner app with a frog mascot: Home, Calendar, Goals and Profile in one place.</p>
+                    <p class="tech"><span class="visually-hidden">Built with </span>TypeScript, React, Vite, PWA, Railway</p>
+                    <p class="go"><a href="https://planner.kokogecko.dev/preview">See what it does</a><a href="https://planner.kokogecko.dev">Open the app</a></p>
+                </li>
+                <li class="cart">
+                    <div class="label">
+                        <canvas id="loop-lina" aria-hidden="true"></canvas>
+                        <h3>Lina OS</h3>
+                        <p class="badges"><span class="badge live">Live, sign-in</span><span class="badge private">Private repo</span></p>
+                    </div>
+                    <p class="problem">A marketing command center for two small food and drink brands: plan, write and check Facebook and TikTok posts in one place.</p>
+                    <p class="tech"><span class="visually-hidden">Built with </span>Node.js, HTML, CSS, JavaScript, Claude API, Railway</p>
+                    <p class="go"><a href="https://lina.kokogecko.dev/preview">See what it does</a><a href="https://lina.kokogecko.dev">Open the app</a></p>
+                </li>
+                <li class="cart">
+                    <div class="label">
+                        <canvas id="loop-poli" aria-hidden="true"></canvas>
                         <h3>Poli Studio</h3>
-                        <p>A small Roblox game studio, a team of 3 with my friends. Come support us on our journey &lt;3</p>
-                        <p class="links">
-                            <a href="https://www.tiktok.com/@polistudio01">TikTok</a>
-                            <a href="https://www.youtube.com/@PoliStudio01">YouTube</a>
-                            <a href="https://www.instagram.com/polistudio01/">Instagram</a>
-                        </p>
+                        <p class="badges"><span class="badge social">Socials</span></p>
                     </div>
+                    <p class="problem">A small Roblox game studio, a team of 3 with my friends. Come support us on our journey &lt;3</p>
+                    <p class="tech"><span class="visually-hidden">Built with </span>Roblox</p>
+                    <p class="go">
+                        <a href="https://www.tiktok.com/@polistudio01">TikTok</a>
+                        <a href="https://www.youtube.com/@PoliStudio01">YouTube</a>
+                        <a href="https://www.instagram.com/polistudio01/">Instagram</a>
+                    </p>
                 </li>
-                <li>
-                    <canvas id="loop-bellypie" aria-hidden="true"></canvas>
-                    <div>
+                <li class="cart">
+                    <div class="label">
+                        <canvas id="loop-bellypie" aria-hidden="true"></canvas>
                         <h3>Bellypie Enterprise</h3>
-                        <p>A design studio with two of my friends: Canva and personal design. Opening soon.</p>
+                        <p class="badges"><span class="badge soon">Opening soon</span></p>
                     </div>
+                    <p class="problem">A design studio with two of my friends: Canva and personal design.</p>
+                    <p class="tech"><span class="visually-hidden">Built with </span>Canva</p>
                 </li>
-                <li>
-                    <canvas id="loop-site" aria-hidden="true"></canvas>
-                    <div>
+                <li class="cart">
+                    <div class="label">
+                        <canvas id="loop-site" aria-hidden="true"></canvas>
                         <h3>kokogecko.dev</h3>
-                        <p>This site: a retro platformer drawn in scanlines.</p>
+                        <p class="badges"><span class="badge live">Live</span><span class="badge public">Public repo</span></p>
                     </div>
+                    <p class="problem">This site: a retro platformer drawn in scanlines, with a BB84 bench you can eavesdrop on.</p>
+                    <p class="tech"><span class="visually-hidden">Built with </span>HTML, CSS, JavaScript, Canvas</p>
+                    <p class="go"><a href="https://github.com/KokoGecko/KokoGecko.github.io">View code on GitHub</a></p>
                 </li>
             </ul>
+        </section>
+
+        <section id="about" class="about" aria-labelledby="about-title">
+            <h2 id="about-title">about</h2>
+            <p>I like geckos.</p>
         </section>
 
         <section class="stack" aria-labelledby="stack-title">
@@ -104,5 +165,6 @@
 
     <script src="scanline.js"></script>
     <script src="site.js"></script>
+    <script src="cards.js"></script>
 </body>
 </html>

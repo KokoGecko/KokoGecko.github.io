@@ -1,5 +1,5 @@
 // site.js: the page. Uses the engine in scanline.js.
-// 1. wordmark, 2. the BB84 bench (you play Eve), 3. "stardust", 4. project loops.
+// 1. wordmark, 2. the BB84 bench (you play Eve), 3. "stardust", 4. project loops (one per cartridge).
 
 let COL = palette();
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { COL = palette(); });
@@ -209,8 +209,10 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () 
 
     // Screen readers get the numbers as text, politely, a few times a second at most
     const live = document.getElementById("bench-status");
+    const resetCount = document.getElementById("reset-n");   // the number on the "Reset count" button
     function liveText(qber) {
         live.textContent = `${stats.sent} photons sent, ${stats.sifted} kept, ${stats.caught} read by the gecko. Error rate ${Math.round(qber * 100)}%.`;
+        resetCount.textContent = stats.caught;
     }
 
     // --- controls ---
@@ -406,5 +408,47 @@ function loop(id, W, H, drawFrame) {
         }));
         const photon = textRects("⟋", 120, 52, 3);
         return { rects, moving: rects.slice(1), accent: photon };
+    });
+})();
+
+// Profile README: a small Bloch sphere; the state vector precesses and its tip glows gold
+(function () {
+    const ring = [];
+    for (let i = 0; i < 28; i++) { const t = (i / 28) * 2 * Math.PI; ring.push([Math.round(120 + 30 * Math.cos(t)), Math.round(38 + 30 * Math.sin(t)), 3, 3]); }
+    for (let x = 90; x < 150; x += 6) ring.push([x, 38, 3, 1]);      // the equator, dashed
+    loop("loop-profile", 240, 80, (k) => {
+        const a = k / 8, shaft = [];
+        for (let s = 1; s <= 8; s++) shaft.push([Math.round(120 + s * 3.4 * Math.cos(a)), Math.round(38 - s * 2 * Math.sin(a) - s * 1.2), 3, 3]);
+        const tip = [[Math.round(120 + 28 * Math.cos(a)) - 1, Math.round(38 - 16 * Math.sin(a) - 10) - 1, 5, 5]];
+        return { rects: ring.concat(shaft), moving: shaft, accent: tip };
+    });
+})();
+
+// Koko Planner: the frog hops through the week, one day at a time; today's cell fills gold
+(function () {
+    const FROG = ["GG....GG", "G.GGGG.G", "GGGGGGGG", ".GGGGGG."];
+    const week = [];
+    for (let d = 0; d < 7; d++) week.push([12 + d * 32, 66, 26, 2], [12 + d * 32, 46, 2, 22], [36 + d * 32, 46, 2, 22]);
+    loop("loop-planner", 240, 80, (k) => {
+        const day = Math.floor(k / 10) % 7, t = k % 10;
+        const hop = Math.round(18 * Math.sin((t / 10) * Math.PI)), fx = 12 + day * 32 + Math.round((t / 10) * 32) - 2;
+        const frog = [];
+        FROG.forEach((row, ry) => [...row].forEach((ch, rx) => { if (ch === "G") frog.push([fx + rx * 4, 26 - hop + ry * 4, 4, 3]); }));
+        return { rects: week.concat(frog), moving: frog, accent: [[16 + day * 32, 54, 18, 8]] };
+    });
+})();
+
+// Lina OS: a month of posts; one more gets planned every beat, the newest in gold
+(function () {
+    const slots = [];
+    for (let i = 0; i < 28; i++) slots.push([60 + (i % 7) * 18, 6 + Math.floor(i / 7) * 18]);
+    loop("loop-lina", 240, 80, (k) => {
+        const n = Math.floor(k / 4) % 30;                       // 0..28 planned, then a beat, then a fresh month
+        const rects = [], accent = [];
+        slots.forEach(([x, y], i) => {
+            rects.push([x, y + 14, 14, 1]);                     // each day's baseline
+            if (i < Math.min(n, 28)) (i === n - 1 ? accent : rects).push([x + 3, y + 4, 8, 8]);
+        });
+        return { rects, moving: accent, accent };
     });
 })();

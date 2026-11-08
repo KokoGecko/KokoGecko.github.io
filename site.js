@@ -452,3 +452,44 @@ function loop(id, W, H, drawFrame) {
         return { rects, moving: accent, accent };
     });
 })();
+
+// KokoClaude Jarvis: an arc reactor; a gold arc sweeps around the ring while the core pulses
+(function () {
+    const ring = [];
+    for (let i = 0; i < 24; i++) { const t = (i / 24) * 2 * Math.PI; ring.push([Math.round(120 + 30 * Math.cos(t)) - 1, Math.round(40 + 30 * Math.sin(t)) - 1, 3, 3]); }
+    loop("loop-jarvis", 240, 80, (k) => {
+        const core = k % 12 < 6 ? [[114, 34, 12, 12]] : [[116, 36, 8, 8]];
+        const arc = [];
+        for (let s = 0; s < 5; s++) { const t = ((k + s) / 24) * 2 * Math.PI; arc.push([Math.round(120 + 20 * Math.cos(t)) - 1, Math.round(40 + 20 * Math.sin(t)) - 1, 3, 3]); }
+        return { rects: ring.concat(core), moving: arc, accent: arc };
+    });
+})();
+
+// You Heng: a bowl of kuy teav; steam rises from it in stepped wisps
+(function () {
+    const bowl = [[84, 72, 72, 2]];
+    for (let x = 84; x <= 156; x += 4) { const d = Math.abs(x - 120) / 36; bowl.push([x, Math.round(48 + 22 * Math.sqrt(1 - Math.min(1, d * d))), 3, 3]); }
+    bowl.push([80, 46, 80, 2]);
+    loop("loop-youheng", 240, 80, (k) => {
+        const steam = [];
+        [100, 120, 140].forEach((sx, i) => {
+            for (let s = 0; s < 4; s++) {
+                const y = 40 - ((k * 2 + i * 7 + s * 9) % 36);
+                steam.push([sx + Math.round(4 * Math.sin((y + i * 5) / 6)), y, 2, 3]);
+            }
+        });
+        return { rects: bowl, moving: steam, accent: steam.filter((_, i) => i % 4 === 0) };
+    });
+})();
+
+// Dakasi (under construction): a tea cup being built row by row; tapioca pearls drop in, in gold
+(function () {
+    loop("loop-dakasi", 240, 80, (k) => {
+        const rows = Math.floor(k / 3) % 20;                    // build up 16 rows, hold a beat, start again
+        const rects = [[96, 74, 48, 2], [92, 8, 56, 2], [126, 0, 2, 8]];
+        for (let r = 0; r < Math.min(rows, 16); r++) { const y = 70 - r * 4, inset = Math.round(r * 0.5); rects.push([96 - inset, y, 3, 3], [141 + inset, y, 3, 3]); }
+        const pearls = [];
+        for (let p = 0; p < 5; p++) pearls.push([104 + p * 7, 66 - (p % 2) * 4, 4, 4]);
+        return { rects, moving: [], accent: rows >= 16 ? pearls : pearls.slice(0, Math.max(0, rows - 11)) };
+    });
+})();

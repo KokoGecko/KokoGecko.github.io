@@ -241,7 +241,7 @@ footer p { margin: 0; }
     box-shadow: 1px -3px 0 -1px var(--paper), 1px -3px 0 0 currentColor;
 }
 .badge.soon { border-style: dashed; }
-.badge.social { border-color: var(--ink); color: var(--ink); }
+.badge.social, .badge.plain { border-color: var(--ink); color: var(--ink); }
 
 /* ---------- twinkling pixel stars in the gaps between cartridges ---------- */
 .stars { position: absolute; inset: 64px 0 0; pointer-events: none; display: none; }
